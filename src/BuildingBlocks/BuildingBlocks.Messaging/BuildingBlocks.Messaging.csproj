@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net9.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><RootNamespace>Coaching.BuildingBlocks.Messaging</RootNamespace></PropertyGroup>
+<ItemGroup><PackageReference Include="MassTransit.RabbitMQ" Version="8.3.6"/>
+<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0"/></ItemGroup>
+<ItemGroup><ProjectReference Include="..\BuildingBlocks\BuildingBlocks.csproj"/></ItemGroup></Project>

@@ -1,0 +1,2 @@
+{ "profiles": { "Academic.Api": { "commandName": "Project", "launchBrowser": true, "launchUrl": "swagger",
+  "applicationUrl": "http://localhost:5002", "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development" } } } }
