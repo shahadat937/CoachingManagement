@@ -1,6 +1,8 @@
+using Coaching.BuildingBlocks.Security;
 using Coaching.Devices.Application.Features;
 using Coaching.Devices.Domain;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Coaching.Devices.Api.Controllers;
@@ -10,6 +12,7 @@ public record PunchBatch(IReadOnlyList<PunchItem> Punches);
 
 [ApiController]
 [Route("api/devices")]
+[Authorize(Policy = AuthorizationPolicies.DeviceManagement)]
 public class DevicesController(ISender sender) : ControllerBase
 {
     [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => Ok(await sender.Send(new ListDevicesQuery(), ct));
@@ -19,6 +22,7 @@ public class DevicesController(ISender sender) : ControllerBase
         Created(string.Empty, new { apiKey = await sender.Send(new RegisterDeviceCommand(r.Serial, r.Name, r.RoomCode, r.Type), ct) });
 
     /// <summary>Called by the device (or an on-prem bridge for ZKTeco/ADMS-style devices). Auth: X-Device-Key header.</summary>
+    [AllowAnonymous]
     [HttpPost("{serial}/punches")]
     public async Task<IActionResult> Punches(string serial, [FromHeader(Name = "X-Device-Key")] string key, PunchBatch batch, CancellationToken ct)
     {

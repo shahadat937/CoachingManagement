@@ -1,6 +1,8 @@
+using Coaching.BuildingBlocks.Security;
 using Coaching.Attendance.Application.Features;
 using Coaching.Attendance.Domain;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Coaching.Attendance.Api.Controllers;
@@ -9,6 +11,7 @@ public record MarkRequest(AttendanceStatus Status);
 
 [ApiController]
 [Route("api/attendance")]
+[Authorize(Policy = AuthorizationPolicies.AttendanceManagement)]
 public class AttendanceController(ISender sender) : ControllerBase
 {
     [HttpPost("sessions")]

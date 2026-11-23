@@ -1,12 +1,15 @@
+using Coaching.BuildingBlocks.Security;
 using Coaching.Exams.Application.Features;
 using Coaching.Exams.Domain;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Coaching.Exams.Api.Controllers;
 
 [ApiController]
 [Route("api/exams")]
+[Authorize(Policy = AuthorizationPolicies.ExamManagement)]
 public class ExamsController(ISender sender) : ControllerBase
 {
     [HttpGet]

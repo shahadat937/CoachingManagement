@@ -1,12 +1,15 @@
+using Coaching.BuildingBlocks.Security;
 using Coaching.Students.Application.Features;
 using Coaching.Students.Domain;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Coaching.Students.Api.Controllers;
 
 [ApiController]
 [Route("api/students")]
+[Authorize(Policy = AuthorizationPolicies.StudentManagement)]
 public class StudentsController(ISender sender) : ControllerBase
 {
     [HttpGet]

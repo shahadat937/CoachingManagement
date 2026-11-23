@@ -5,4 +5,6 @@ node_modules/
 .idea/
 dist/
 .angular/
+.env
+deploy/.env
 *.user

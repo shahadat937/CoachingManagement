@@ -1,12 +1,15 @@
+using Coaching.BuildingBlocks.Security;
 using Coaching.Accounts.Application.Features;
 using Coaching.Accounts.Domain;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Coaching.Accounts.Api.Controllers;
 
 [ApiController]
 [Route("api/fee-invoices")]
+[Authorize(Policy = AuthorizationPolicies.FinanceManagement)]
 public class FeeInvoicesController(ISender sender) : ControllerBase
 {
     [HttpGet]

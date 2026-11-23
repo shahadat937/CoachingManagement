@@ -1,3 +1,4 @@
+using Coaching.BuildingBlocks;
 using Coaching.BuildingBlocks.Contracts;
 using Coaching.BuildingBlocks.Messaging;
 using Coaching.Students.Application;

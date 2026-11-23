@@ -1,4 +1,10 @@
 # Local infrastructure + all services.  Run from this folder:  docker compose up --build
+x-jwt-environment: &jwt-environment
+  Jwt__Issuer: "${JWT_ISSUER:-CoachingManagement}"
+  Jwt__Audience: "${JWT_AUDIENCE:-CoachingManagement.Web}"
+  Jwt__SigningKey: "${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in deploy/.env before running Docker Compose}"
+  Jwt__AccessTokenLifetimeMinutes: "${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-60}"
+
 services:
   postgres:
     image: postgres:16
@@ -24,42 +30,52 @@ services:
   identity-api:
     build: { context: .., dockerfile: src/Services/Identity/Identity.Api/Dockerfile }
     environment:
+      <<: *jwt-environment
       ConnectionStrings__Default: Host=postgres;Database=identity_db;Username=postgres;Password=postgres
       RabbitMq__Host: rabbitmq
+      BootstrapAdmin__Email: "${BOOTSTRAP_ADMIN_EMAIL:-}"
+      BootstrapAdmin__FullName: "${BOOTSTRAP_ADMIN_FULL_NAME:-}"
+      BootstrapAdmin__Password: "${BOOTSTRAP_ADMIN_PASSWORD:-}"
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
   academic-api:
     build: { context: .., dockerfile: src/Services/Academic/Academic.Api/Dockerfile }
     environment:
+      <<: *jwt-environment
       ConnectionStrings__Default: Host=postgres;Database=academic_db;Username=postgres;Password=postgres
       RabbitMq__Host: rabbitmq
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
   students-api:
     build: { context: .., dockerfile: src/Services/Students/Students.Api/Dockerfile }
     environment:
+      <<: *jwt-environment
       ConnectionStrings__Default: Host=postgres;Database=students_db;Username=postgres;Password=postgres
       RabbitMq__Host: rabbitmq
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
   attendance-api:
     build: { context: .., dockerfile: src/Services/Attendance/Attendance.Api/Dockerfile }
     environment:
+      <<: *jwt-environment
       ConnectionStrings__Default: Host=postgres;Database=attendance_db;Username=postgres;Password=postgres
       RabbitMq__Host: rabbitmq
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
   devices-api:
     build: { context: .., dockerfile: src/Services/Devices/Devices.Api/Dockerfile }
     environment:
+      <<: *jwt-environment
       ConnectionStrings__Mongo: mongodb://mongo:27017
       RabbitMq__Host: rabbitmq
     depends_on: [mongo, rabbitmq]
   accounts-api:
     build: { context: .., dockerfile: src/Services/Accounts/Accounts.Api/Dockerfile }
     environment:
+      <<: *jwt-environment
       ConnectionStrings__Default: Host=postgres;Database=accounts_db;Username=postgres;Password=postgres
       RabbitMq__Host: rabbitmq
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
   exams-api:
     build: { context: .., dockerfile: src/Services/Exams/Exams.Api/Dockerfile }
     environment:
+      <<: *jwt-environment
       ConnectionStrings__Default: Host=postgres;Database=exams_db;Username=postgres;Password=postgres
       RabbitMq__Host: rabbitmq
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
