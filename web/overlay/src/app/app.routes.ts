@@ -11,7 +11,13 @@ export const routes: Routes = [
     loadComponent: () => import('./core/layout/app-shell.component').then((m) => m.AppShellComponent),
     children: [
       { path: 'dashboard', title: 'Dashboard', loadComponent: () => import('./features/dashboard/pages/dashboard.component').then((m) => m.DashboardComponent) },
-      { path: 'students', title: 'Students', canActivate: [roleGuard], data: MODULE_DATA['students'], loadComponent: () => import('./features/workspace/pages/module-page.component').then((m) => m.ModulePageComponent) },
+      {
+        path: 'students',
+        title: 'Students',
+        canActivate: [roleGuard],
+        data: MODULE_DATA['students'],
+        loadChildren: () => import('./features/students/students.routes').then((m) => m.STUDENT_ROUTES),
+      },
       { path: 'academic', title: 'Academic', canActivate: [roleGuard], data: MODULE_DATA['academic'], loadComponent: () => import('./features/workspace/pages/module-page.component').then((m) => m.ModulePageComponent) },
       {
         path: 'attendance',

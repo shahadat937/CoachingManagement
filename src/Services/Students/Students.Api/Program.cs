@@ -49,4 +49,6 @@ app.MapHealthChecks("/health");
 using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<StudentsDbContext>().Database.EnsureCreated();
 
+app.Services.EnsureStudentOutboxSchema();
+
 app.Run();

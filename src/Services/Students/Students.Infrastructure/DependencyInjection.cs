@@ -3,6 +3,7 @@ using Coaching.BuildingBlocks.Messaging;
 using Coaching.BuildingBlocks.Persistence;
 using Coaching.Students.Application;
 using Coaching.Students.Infrastructure.Messaging;
+using Coaching.Students.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ public static class DependencyInjection
         services.AddDbContext<StudentsDbContext>(o => o.UseNpgsql(config.GetConnectionString("Default")));
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<StudentsDbContext>());
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
+        services.AddScoped<IStudentStore, StudentStore>();
         services.AddScoped<IStudentEventOutbox, StudentEventOutbox>();
         services.AddHostedService<StudentEventOutboxDispatcher>();
         services.AddRabbitMqMessaging(config, queuePrefix: "students");
