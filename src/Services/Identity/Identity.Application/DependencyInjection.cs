@@ -11,6 +11,7 @@ public static class DependencyInjection
     {
         services.AddMediatR(c => c.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+        services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
         return services;
     }

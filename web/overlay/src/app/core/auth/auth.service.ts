@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize, shareReplay, tap } from 'rxjs';
 import { AuthSession, LoginRequest } from './auth.models';
 
 @Injectable({ providedIn: 'root' })
@@ -8,6 +8,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly storageKey = 'coaching.auth.session';
   private readonly currentSession = signal<AuthSession | null>(this.readSession());
+  private refreshRequest?: Observable<AuthSession>;
 
   readonly session = this.currentSession.asReadonly();
   readonly isAuthenticated = computed(() => {
@@ -16,29 +17,43 @@ export class AuthService {
   });
 
   login(request: LoginRequest): Observable<AuthSession> {
-    return this.http.post<AuthSession>('/api/auth/login', request).pipe(
+    return this.http.post<AuthSession>('/api/auth/login', request, { withCredentials: true }).pipe(
       tap((session) => this.saveSession(session)),
     );
   }
 
-  accessToken(): string | null {
-    const session = this.currentSession();
-    if (session === null || this.isExpired(session)) {
-      this.logout();
-      return null;
+  refresh(): Observable<AuthSession> {
+    if (!this.refreshRequest) {
+      this.refreshRequest = this.http.post<AuthSession>('/api/auth/refresh', {}, { withCredentials: true }).pipe(
+        tap((session) => this.saveSession(session)),
+        finalize(() => { this.refreshRequest = undefined; }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
     }
 
-    return session.accessToken;
+    return this.refreshRequest;
+  }
+
+  accessToken(): string | null {
+    const session = this.currentSession();
+    return session === null || this.isExpired(session) ? null : session.accessToken;
   }
 
   logout(): void {
+    this.clearSession();
+    this.http.post<void>('/api/auth/logout', {}, { withCredentials: true }).subscribe({
+      error: () => undefined,
+    });
+  }
+
+  clearSession(): void {
     this.currentSession.set(null);
     this.removeStoredSession();
   }
 
   private saveSession(session: AuthSession): void {
     if (!this.isSession(session) || this.isExpired(session)) {
-      this.logout();
+      this.clearSession();
       return;
     }
 

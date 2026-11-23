@@ -1,6 +1,7 @@
 using Coaching.BuildingBlocks.Security;
 using Coaching.Identity.Application;
 using Coaching.Identity.Infrastructure;
+using Coaching.Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -48,6 +49,8 @@ app.MapHealthChecks("/health");
 // Dev convenience. Replace with EF Core migrations before production.
 using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.EnsureCreated();
+
+app.Services.EnsureRefreshTokenSchema();
 
 await app.Services.SeedBootstrapAdminAsync(builder.Configuration);
 

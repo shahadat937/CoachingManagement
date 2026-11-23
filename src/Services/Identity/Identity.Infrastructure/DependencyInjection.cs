@@ -14,10 +14,16 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
         services.AddDbContext<IdentityDbContext>(o => o.UseNpgsql(config.GetConnectionString("Default")));
+        var refreshTokenOptions = new RefreshTokenOptions();
+        config.GetSection(RefreshTokenOptions.SectionName).Bind(refreshTokenOptions);
+        refreshTokenOptions.Validate();
+        services.Configure<RefreshTokenOptions>(config.GetSection(RefreshTokenOptions.SectionName));
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<IdentityDbContext>());
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
         services.AddScoped<IAppUserStore, AppUserStore>();
+        services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<ITokenIssuer, JwtTokenIssuer>();
+        services.AddSingleton<IRefreshTokenFactory, RefreshTokenFactory>();
         services.AddRabbitMqMessaging(config, queuePrefix: "identity");
         return services;
     }

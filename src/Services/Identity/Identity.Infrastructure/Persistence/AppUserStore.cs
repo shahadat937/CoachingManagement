@@ -10,6 +10,9 @@ public sealed class AppUserStore(IdentityDbContext db) : IAppUserStore
         db.AppUsers.OrderBy(user => user.Id)
             .FirstOrDefaultAsync(user => user.Email.ToLower() == normalizedEmail, ct);
 
+    public Task<AppUser?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        db.AppUsers.FirstOrDefaultAsync(user => user.Id == id, ct);
+
     public Task<bool> HasRoleAsync(string role, CancellationToken ct = default) =>
         db.AppUsers.AnyAsync(user => user.Role == role, ct);
 

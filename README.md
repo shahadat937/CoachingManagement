@@ -33,7 +33,9 @@ Swagger: http://localhost:500X/swagger. Frontend: see `web/README.md`.
 
 ## Authentication and authorization
 
-`POST /api/auth/login` authenticates an email/password pair and returns an access token, expiry, and safe user profile. Send the token to protected endpoints as `Authorization: Bearer <accessToken>`. Passwords are PBKDF2-hashed server-side and are never returned by the user APIs.
+`POST /api/auth/login` authenticates an email/password pair and returns an access token, expiry, and safe user profile. It also sets an HttpOnly, `SameSite=Strict` refresh-token cookie; the raw refresh token is never returned in JSON or stored in the browser's web storage. Send the access token to protected endpoints as `Authorization: Bearer <accessToken>` (Swagger's **Authorize** dialog accepts the raw access token and adds the prefix automatically). Passwords are PBKDF2-hashed server-side and are never returned by the user APIs.
+
+`POST /api/auth/refresh` uses that cookie to issue a new access token and rotates the refresh token. Refresh tokens are random 512-bit values, stored only as SHA-256 hashes on the server, and may be used once. Reuse of a rotated token revokes the user's remaining active refresh sessions. `POST /api/auth/logout` revokes the presented cookie session and clears the cookie, including when the access token has expired. The Angular overlay refreshes once after a protected `401` and retries the failed request. Configure the cookie lifetime with `RefreshToken:LifetimeDays` (1-90; default 7).
 
 The first administrator is provisioned only from the three `BootstrapAdmin__*` settings. For Docker Compose, set `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_FULL_NAME`, and `BOOTSTRAP_ADMIN_PASSWORD` in `deploy/.env` before the first start. The password must be 12–128 characters. The seed runs only when the database has no `Admin` role, so the same explicit configuration can recover a legacy database that has users but no administrator. Remove the bootstrap password from deployed configuration after setup.
 
@@ -51,7 +53,7 @@ All APIs validate the same signed JWT. The checked-in key is development-only; n
 
 Student and Guardian tokens intentionally do not receive broad read access yet: the current model has no user-to-student/guardian ownership relation to enforce safely.
 
-> The development database lifecycle uses `EnsureCreated`, not EF migrations. It will not add the new unique email index to an existing `identity_db`; reset a disposable local database or apply a migration before upgrading a persistent deployment.
+> The development database lifecycle uses `EnsureCreated`, not EF migrations. Startup includes a compatibility step that creates the refresh-token table in an existing local `identity_db`, but it will not add other schema changes such as the unique email index. Reset a disposable local database or apply proper EF migrations before upgrading a persistent deployment.
 
 ## Status / next steps
 Fully worked: Attendance, Devices, Students->Attendance event sync, gateway, compose, Angular attendance feature.
