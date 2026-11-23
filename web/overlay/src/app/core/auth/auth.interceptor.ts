@@ -1,10 +1,10 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
-import { AuthService } from './auth.service';
+import { AuthFacade } from './auth.facade';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
-  const auth = inject(AuthService);
+  const auth = inject(AuthFacade);
   const isApiRequest = request.url.startsWith('/api/');
   const isAuthenticationRequest = request.url.startsWith('/api/auth/');
   const canRefresh = isApiRequest && !isAuthenticationRequest && !request.headers.has('Authorization');
