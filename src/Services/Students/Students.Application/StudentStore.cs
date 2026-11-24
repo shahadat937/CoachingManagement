@@ -12,7 +12,7 @@ public interface IStudentStore
     Task<Student?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default);
     Task<Student?> FindByStudentNoAsync(string studentNo, CancellationToken ct = default);
     Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default);
-    Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Student>> ListAsync(bool isActive, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default);
     Task<StudentPhotoMetadata?> GetPhotoMetadataAsync(Guid studentId, CancellationToken ct = default);
     Task<StudentPhoto?> GetPhotoAsync(Guid studentId, CancellationToken ct = default);

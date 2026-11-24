@@ -8,8 +8,8 @@ export class StudentsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/students';
 
-  list(): Observable<Student[]> {
-    return this.http.get<Student[]>(this.baseUrl);
+  list(isActive = true): Observable<Student[]> {
+    return this.http.get<Student[]>(this.baseUrl, { params: { isActive: String(isActive) } });
   }
 
   create(request: CreateStudentRequest): Observable<Student> {
@@ -22,6 +22,10 @@ export class StudentsApi {
 
   deactivate(studentId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(studentId)}`);
+  }
+
+  activate(studentId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${encodeURIComponent(studentId)}/activate`, null);
   }
 
   uploadPhoto(studentId: string, photo: File): Observable<StudentPhotoMetadata> {

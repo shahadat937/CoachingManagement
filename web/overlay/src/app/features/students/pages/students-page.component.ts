@@ -34,17 +34,17 @@ import {
     .metric { background: #fff; border: 1px solid #e8edf6; border-radius: .95rem; padding: 1rem 1.1rem; } .metric.indigo { border-top: 3px solid #6259e9; } .metric.cyan { border-top: 3px solid #27b9d9; } .metric.violet { border-top: 3px solid #9d73eb; }
     .metric span { color: #72819a; font-size: .75rem; font-weight: 700; } .metric strong { color: #263954; display: block; font-size: 1.35rem; letter-spacing: -.035em; margin: .48rem 0 .18rem; } .metric small { color: #8a97ab; font-size: .7rem; }
     .notice { align-items: flex-start; border: 1px solid; border-radius: .78rem; display: flex; font-size: .8rem; gap: .7rem; justify-content: space-between; margin: 0 0 1rem; padding: .78rem .92rem; } .notice span { line-height: 1.45; } .notice.error { background: #fff4f4; border-color: #ffd7dc; color: #ad4450; } .notice.success { background: #edfaf5; border-color: #ccefdc; color: #187654; } .notice button { background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; font-size: 1rem; line-height: 1; padding: 0; }
-    .workspace { background: #fff; border: 1px solid #e8edf6; border-radius: 1rem; overflow: hidden; } .workspace-top { align-items: center; display: flex; gap: 1rem; justify-content: space-between; padding: 1.05rem 1.2rem; } .workspace-top h2 { color: #2b3e59; font-size: 1rem; letter-spacing: -.02em; margin: 0; } .workspace-top p { color: #8795a9; font-size: .72rem; margin: .25rem 0 0; }
+    .workspace { background: #fff; border: 1px solid #e8edf6; border-radius: 1rem; overflow: hidden; } .workspace-top { align-items: center; display: flex; gap: 1rem; justify-content: space-between; padding: 1.05rem 1.2rem; } .workspace-top h2 { color: #2b3e59; font-size: 1rem; letter-spacing: -.02em; margin: 0; } .workspace-top p { color: #8795a9; font-size: .72rem; margin: .25rem 0 0; } .directory-tools { align-items: center; display: flex; gap: .65rem; } .status-tabs { display: flex; } .status-tab.active { background: #6159e9; color: #fff; }
     .search { align-items: center; background: #f5f7fb; border: 1px solid #e9edf5; border-radius: .65rem; color: #8795aa; display: flex; gap: .45rem; padding: .5rem .65rem; width: min(100%, 17rem); } .search svg { fill: none; height: .95rem; stroke: currentColor; stroke-width: 2; width: .95rem; } .search input { background: transparent; border: 0; color: #344762; font: inherit; font-size: .76rem; min-width: 0; outline: 0; width: 100%; }
     .table-wrap { overflow-x: auto; } table { border-collapse: collapse; min-width: 44rem; width: 100%; } th { background: #fafbfe; border-bottom: 1px solid #e9edf5; color: #77869d; font-size: .68rem; font-weight: 800; letter-spacing: .05em; padding: .72rem 1.1rem; text-align: left; text-transform: uppercase; } td { border-bottom: 1px solid #eef1f6; color: #445570; font-size: .78rem; padding: .92rem 1.1rem; white-space: nowrap; } tr:last-child td { border-bottom: 0; } .student-name { color: #2f415d; font-weight: 750; } .student-identity { align-items: center; display: flex; gap: .6rem; } .avatar { align-items: center; background: linear-gradient(135deg, #eeeefe, #dceff7); border-radius: 50%; color: #5d58c9; display: inline-flex; font-weight: 800; height: 2rem; justify-content: center; overflow: hidden; width: 2rem; } .avatar img { height: 100%; object-fit: cover; width: 100%; } .student-number { color: #635be8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; font-weight: 700; } .muted { color: #8290a5; } .device { background: #f1efff; border-radius: 100px; color: #655cdb; display: inline-flex; font-size: .67rem; font-weight: 750; padding: .25rem .5rem; }
     .photo-avatar { cursor: zoom-in; } .photo-avatar:focus-visible { outline: 3px solid rgba(97, 89, 233, .42); outline-offset: 3px; } .passport-photo-popover { background: #fff; border: 1px solid #dfe5f0; border-radius: .85rem; box-shadow: 0 18px 40px rgba(28, 43, 70, .25); box-sizing: border-box; padding: .45rem; pointer-events: none; position: fixed; width: 8rem; z-index: 40; } .passport-photo-popover img { aspect-ratio: 7 / 9; border-radius: .5rem; display: block; object-fit: cover; width: 100%; } .passport-photo-popover strong { color: #2d405c; display: block; font-size: .68rem; margin: .48rem .15rem 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .passport-photo-popover span { color: #7d8ba0; display: block; font-size: .62rem; margin: .18rem .15rem .05rem; }
-    .row-actions { display: flex; gap: .4rem; } .danger-primary { background: #c84e5f; box-shadow: 0 10px 22px rgba(184, 69, 84, .18); }
+    .row-actions { align-items: center; display: flex; gap: .4rem; } .danger-action { color: #b64d5c; } .danger-primary { background: #c84e5f; box-shadow: 0 10px 22px rgba(184, 69, 84, .18); }
     .footer { align-items: center; border-top: 1px solid #eef1f6; color: #8391a5; display: flex; font-size: .72rem; justify-content: space-between; padding: .8rem 1.2rem; } .endpoint { color: #665eea; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .68rem; } .empty { color: #8492a7; font-size: .82rem; padding: 2.4rem 1.2rem; text-align: center; } .empty strong { color: #40536e; display: block; font-size: .92rem; margin-bottom: .3rem; }
     .dialog-backdrop { align-items: stretch; background: rgba(18, 32, 55, .45); display: flex; justify-content: flex-end; inset: 0; padding: 0; position: fixed; z-index: 30; } .dialog { background: #fff; box-shadow: -16px 0 44px rgba(20, 36, 62, .2); display: flex; flex-direction: column; max-width: 31rem; overflow-y: auto; padding: 1.3rem; width: min(100%, 31rem); } .dialog-head { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.35rem; } .dialog-head h2 { color: #20334f; font-size: 1.2rem; letter-spacing: -.03em; margin: .15rem 0 0; } .dialog-head p { color: #78879e; font-size: .77rem; line-height: 1.45; margin: .4rem 0 0; } .close { align-items: center; background: #f4f6fa; border: 0; border-radius: .55rem; color: #63738c; cursor: pointer; display: inline-flex; font-size: 1.18rem; height: 2rem; justify-content: center; width: 2rem; }
     form { display: grid; gap: 1rem; } .field { display: grid; gap: .42rem; } .field label, .photo-label { color: #40536e; font-size: .76rem; font-weight: 750; } .optional { color: #91a0b2; font-size: .68rem; font-weight: 600; } .field input, .field select { background: #fff; border: 1px solid #dce4f0; border-radius: .62rem; box-sizing: border-box; color: #30435f; font: inherit; font-size: .84rem; padding: .7rem .75rem; width: 100%; } .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #71819a 50%), linear-gradient(135deg, #71819a 50%, transparent 50%); background-position: calc(100% - 15px) calc(50% - 2px), calc(100% - 10px) calc(50% - 2px); background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; } .field input::placeholder { color: #a7b1bf; } .field input.invalid, .field select.invalid { border-color: #df7180; } .help, .field-error { font-size: .7rem; line-height: 1.35; margin: 0; } .help { color: #8997aa; } .field-error { color: #c54c5a; }
     .photo-field { display: grid; gap: .5rem; } .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; } .photo-dropzone { align-items: center; background: #fafbff; border: 1px dashed #bfc8ed; border-radius: .8rem; cursor: pointer; display: flex; gap: .8rem; padding: .85rem; } .photo-dropzone:hover, .photo-dropzone.dragging { background: #f2f1ff; border-color: #7169eb; color: #5750c7; } .photo-dropzone svg { fill: none; flex: 0 0 auto; height: 1.5rem; stroke: currentColor; stroke-width: 1.8; width: 1.5rem; } .photo-dropzone strong { color: #465a78; display: block; font-size: .77rem; } .photo-dropzone span { display: block; font-size: .68rem; line-height: 1.35; } .photo-preview { align-items: center; background: #f8faff; border: 1px solid #e2e8f5; border-radius: .8rem; display: flex; gap: .8rem; padding: .7rem; } .preview-image { background: #e9edfa; border-radius: .58rem; height: 3.4rem; object-fit: cover; width: 3.4rem; } .preview-details { min-width: 0; } .preview-details strong { color: #40536e; display: block; font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .preview-details span { color: #8694a9; display: block; font-size: .68rem; margin-top: .18rem; } .preview-actions { display: flex; gap: .35rem; margin-left: auto; } .text-button { background: transparent; border: 0; color: #6159e9; cursor: pointer; font: inherit; font-weight: 800; padding: .3rem; } .text-button.danger { color: #bd5964; } .photo-error, .form-error { background: #fff4f4; border: 1px solid #ffd7dc; border-radius: .55rem; color: #ad4450; font-size: .7rem; line-height: 1.4; margin: 0; padding: .52rem .62rem; }
     .form-actions { align-items: center; border-top: 1px solid #edf0f5; display: flex; gap: .65rem; justify-content: flex-end; margin-top: .35rem; padding-top: 1rem; } .secondary { background: #f4f6fa; border: 1px solid #e4e9f1; border-radius: .65rem; color: #596b84; cursor: pointer; font: inherit; font-size: .78rem; font-weight: 750; padding: .7rem .85rem; } .saving-dot { animation: pulse 1s ease-in-out infinite alternate; background: currentColor; border-radius: 50%; display: inline-block; height: .42rem; margin-right: .35rem; width: .42rem; } @keyframes pulse { from { opacity: .35; } to { opacity: 1; } }
-    @media (max-width: 700px) { .page-head { align-items: stretch; display: grid; grid-template-columns: 1fr; } .primary { width: 100%; } .metrics { grid-template-columns: 1fr; } .workspace-top { align-items: stretch; flex-direction: column; } .search { width: 100%; } .dialog { max-width: none; width: 100%; } } @media (max-width: 420px) { .dialog { padding: 1rem; } .form-actions { align-items: stretch; flex-direction: column-reverse; } .form-actions button { width: 100%; } }
+    @media (max-width: 700px) { .page-head { align-items: stretch; display: grid; grid-template-columns: 1fr; } .primary { width: 100%; } .metrics { grid-template-columns: 1fr; } .workspace-top, .directory-tools { align-items: stretch; flex-direction: column; } .search, .status-tabs { width: 100%; } .status-tab { flex: 1; } .dialog { max-width: none; width: 100%; } } @media (max-width: 420px) { .dialog { padding: 1rem; } .form-actions { align-items: stretch; flex-direction: column-reverse; } .form-actions button { width: 100%; } }
   `,
   template: `
     <section class="page-head">
@@ -53,11 +53,11 @@ import {
         <h1>Student directory</h1>
         <p class="description">Add new learners, keep guardian contacts current and find each class record in one secure place.</p>
       </div>
-      <button class="primary" type="button" (click)="openCreateForm()"><span aria-hidden="true">＋</span> Add student</button>
+      @if (isActiveDirectory()) { <button class="primary" type="button" (click)="openCreateForm()"><span aria-hidden="true">＋</span> Add student</button> }
     </section>
 
     <section class="metrics" aria-label="Student directory summary">
-      <article class="metric indigo"><span>Enrolled learners</span><strong>{{ students().length }}</strong><small>Records in the protected directory</small></article>
+      <article class="metric indigo"><span>{{ isActiveDirectory() ? 'Active learners' : 'Inactive learners' }}</span><strong>{{ students().length }}</strong><small>{{ isActiveDirectory() ? 'Records available for attendance' : 'Archived records retained securely' }}</small></article>
       <article class="metric cyan"><span>Class levels</span><strong>{{ classCount() }}</strong><small>Represented in the current results</small></article>
       <article class="metric violet"><span>Guardian contacts</span><strong>{{ contactCoverage() }}%</strong><small>Records with a contact number</small></article>
     </section>
@@ -67,15 +67,21 @@ import {
 
     <section class="workspace" aria-labelledby="directory-heading">
       <div class="workspace-top">
-        <div><h2 id="directory-heading">Learner records</h2><p>{{ loading() ? 'Refreshing the protected directory…' : 'Search by learner, student number, class or guardian phone.' }}</p></div>
-        <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [value]="query()" (input)="setQuery($any($event.target).value)" type="search" placeholder="Find a student" aria-label="Find a student" /></label>
+        <div><h2 id="directory-heading">{{ isActiveDirectory() ? 'Active learner records' : 'Inactive learner records' }}</h2><p>{{ loading() ? 'Refreshing the protected directory…' : isActiveDirectory() ? 'Search learners currently eligible for attendance.' : 'Review archived learners and reactivate them when they return.' }}</p></div>
+        <div class="directory-tools">
+          <div class="status-tabs" aria-label="Student record status">
+            <button class="secondary status-tab" [class.active]="isActiveDirectory()" [attr.aria-pressed]="isActiveDirectory()" type="button" (click)="setDirectoryStatus('active')" [disabled]="isSubmitting()">Active</button>
+            <button class="secondary status-tab" [class.active]="!isActiveDirectory()" [attr.aria-pressed]="!isActiveDirectory()" type="button" (click)="setDirectoryStatus('inactive')" [disabled]="isSubmitting()">Inactive</button>
+          </div>
+          <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [value]="query()" (input)="setQuery($any($event.target).value)" type="search" placeholder="Find a student" aria-label="Find a student" /></label>
+        </div>
       </div>
       <div class="table-wrap">
         @if (loading() && !students().length) {
           <p class="empty">Loading learner records…</p>
         } @else if (filteredStudents().length) {
           <table>
-            <thead><tr><th>Student</th><th>Student no.</th><th>Class</th><th>Guardian contact</th><th>Device identity</th><th>Added</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Student</th><th>Student no.</th><th>Class</th><th>Guardian contact</th><th>Device identity</th><th>{{ isActiveDirectory() ? 'Added' : 'Inactivated' }}</th><th>Actions</th></tr></thead>
             <tbody>
               @for (student of filteredStudents(); track student.id) {
                 <tr>
@@ -84,17 +90,17 @@ import {
                   <td>Class {{ student.classLevel }}</td>
                   <td>{{ student.guardianPhone }}</td>
                   <td>@if (student.deviceUserId) { <span class="device">{{ student.deviceUserId }}</span> } @else { <span class="muted">Not assigned</span> }</td>
-                  <td class="muted">{{ student.createdAt | date:'dd MMM y' }}</td>
-                  <td><div class="row-actions"><button class="secondary" type="button" (click)="openEditForm(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Edit ' + student.fullName">Edit</button><button class="text-button danger" type="button" (click)="openDeactivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Delete ' + student.fullName" title="Make inactive while keeping the record">Delete</button></div></td>
+                  <td class="muted">@if (isActiveDirectory()) { {{ student.createdAt | date:'dd MMM y' }} } @else if (student.deactivatedAt) { {{ student.deactivatedAt | date:'dd MMM y' }} } @else { Not recorded }</td>
+                  <td>@if (isActiveDirectory()) { <div class="row-actions"><button class="secondary" type="button" (click)="openEditForm(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Edit ' + student.fullName">Edit</button><button class="secondary danger-action" type="button" (click)="openDeactivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Make ' + student.fullName + ' inactive'">Deactivate</button></div> } @else { <button class="secondary activate-action" type="button" (click)="openActivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Reactivate ' + student.fullName">Reactivate</button> }</td>
                 </tr>
               }
             </tbody>
           </table>
         } @else {
-          <div class="empty"><strong>{{ query().trim() ? 'No matching students' : 'No students yet' }}</strong>{{ query().trim() ? 'Try a student number, class or guardian phone.' : 'Add the first learner to begin building your directory.' }}</div>
+          <div class="empty"><strong>{{ query().trim() ? 'No matching students' : isActiveDirectory() ? 'No active students yet' : 'No inactive students' }}</strong>{{ query().trim() ? 'Try a student number, class or guardian phone.' : isActiveDirectory() ? 'Add the first learner to begin building your directory.' : 'Inactive learners stay here until you reactivate them.' }}</div>
         }
       </div>
-      <footer class="footer"><span>Showing {{ filteredStudents().length }} of {{ students().length }} students</span><span class="endpoint">GET /api/students</span></footer>
+      <footer class="footer"><span>Showing {{ filteredStudents().length }} of {{ students().length }} {{ isActiveDirectory() ? 'active' : 'inactive' }} students</span><span class="endpoint">GET /api/students?isActive={{ isActiveDirectory() }}</span></footer>
     </section>
 
     @if (hoveredPhoto(); as photo) {
@@ -233,6 +239,24 @@ import {
         </section>
       </div>
     }
+
+    @if (activatingStudent(); as student) {
+      <div class="dialog-backdrop" (click)="closeActivateFromBackdrop($event)">
+        <section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="activate-student-title" aria-describedby="activate-student-description">
+          <header class="dialog-head">
+            <div><p class="eyebrow">Student status</p><h2 id="activate-student-title">Reactivate student?</h2><p id="activate-student-description">{{ student.fullName }} will return to the active directory.</p></div>
+            <button class="close" type="button" (click)="closeActivateDialog()" [disabled]="isSubmitting()" aria-label="Close reactivate student confirmation">&times;</button>
+          </header>
+          @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+          <p class="description">This restores the learner as active. Their existing device identity can record attendance again.</p>
+          <p class="help"><strong>What changes:</strong> the learner will be available in the active directory and receive new device attendance events.</p>
+          <div class="form-actions">
+            <button class="secondary" type="button" (click)="closeActivateDialog()" [disabled]="isSubmitting()">Cancel</button>
+            <button class="primary" type="button" (click)="activateStudent()" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Reactivating… } @else { Reactivate student }</button>
+          </div>
+        </section>
+      </div>
+    }
   `,
 })
 export class StudentsPageComponent implements OnInit, OnDestroy {
@@ -254,6 +278,8 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   readonly formOpen = signal(false);
   readonly editingStudent = signal<Student | null>(null);
   readonly deactivatingStudent = signal<Student | null>(null);
+  readonly activatingStudent = signal<Student | null>(null);
+  readonly directoryStatus = signal<'active' | 'inactive'>('active');
   readonly selectedPhoto = signal<File | null>(null);
   readonly photoPreviewUrl = signal<string | null>(null);
   readonly photoError = signal<string | null>(null);
@@ -261,6 +287,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   readonly createdStudentId = signal<string | null>(null);
   readonly classLevels = Array.from({ length: 12 }, (_, index) => index + 1);
   readonly filteredStudents = computed(() => filterStudents(this.students(), this.query()));
+  readonly isActiveDirectory = computed(() => this.directoryStatus() === 'active');
   readonly classCount = computed(() => new Set(this.students().map((student) => student.classLevel)).size);
   readonly isSubmitting = computed(() => this.saving() || this.uploadingPhotoId() !== null);
   readonly contactCoverage = computed(() => {
@@ -323,14 +350,23 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
         this.completeStudentDeactivation();
       }
     });
+
+    this.actions$.pipe(
+      ofType(StudentsActions.activateSuccess),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(({ student }) => {
+      if (this.activatingStudent()?.id === student.id) {
+        this.completeStudentActivation();
+      }
+    });
   }
 
   ngOnInit(): void {
-    this.store.dispatch(StudentsActions.load());
+    this.store.dispatch(StudentsActions.load({ isActive: true }));
   }
 
   openCreateForm(): void {
-    if (this.isSubmitting()) {
+    if (this.isSubmitting() || !this.isActiveDirectory()) {
       return;
     }
 
@@ -356,12 +392,21 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   }
 
   openDeactivateDialog(student: Student): void {
-    if (this.isSubmitting()) {
+    if (this.isSubmitting() || !this.isActiveDirectory()) {
       return;
     }
 
     this.store.dispatch(StudentsActions.clearFeedback());
     this.deactivatingStudent.set(student);
+  }
+
+  openActivateDialog(student: Student): void {
+    if (this.isSubmitting() || this.isActiveDirectory()) {
+      return;
+    }
+
+    this.store.dispatch(StudentsActions.clearFeedback());
+    this.activatingStudent.set(student);
   }
 
   closeCreateForm(): void {
@@ -399,6 +444,30 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     if (event.target === event.currentTarget) {
       this.closeDeactivateDialog();
     }
+  }
+
+  closeActivateDialog(): void {
+    if (!this.isSubmitting()) {
+      this.completeStudentActivation();
+    }
+  }
+
+  closeActivateFromBackdrop(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.closeActivateDialog();
+    }
+  }
+
+  setDirectoryStatus(status: 'active' | 'inactive'): void {
+    if (status === this.directoryStatus() || this.isSubmitting()) {
+      return;
+    }
+
+    this.store.dispatch(StudentsActions.clearFeedback());
+    this.query.set('');
+    this.hidePhotoPreview();
+    this.directoryStatus.set(status);
+    this.store.dispatch(StudentsActions.load({ isActive: status === 'active' }));
   }
 
   setQuery(value: string): void {
@@ -479,6 +548,15 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     }
 
     this.store.dispatch(StudentsActions.deactivate({ student }));
+  }
+
+  activateStudent(): void {
+    const student = this.activatingStudent();
+    if (!student || this.isSubmitting()) {
+      return;
+    }
+
+    this.store.dispatch(StudentsActions.activate({ student }));
   }
 
   onPhotoInput(event: Event): void {
@@ -619,6 +697,11 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
 
   private completeStudentDeactivation(): void {
     this.deactivatingStudent.set(null);
+    this.hidePhotoPreview();
+  }
+
+  private completeStudentActivation(): void {
+    this.activatingStudent.set(null);
     this.hidePhotoPreview();
   }
 

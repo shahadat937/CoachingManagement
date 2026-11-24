@@ -1,19 +1,24 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { catchError, exhaustMap, from, map, mergeMap, of, switchMap } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { EMPTY, catchError, exhaustMap, from, map, mergeMap, of, switchMap, withLatestFrom } from 'rxjs';
 import { StudentsApi } from '../data/students.api';
 import { StudentPhotoUrls } from '../data/student-photo-urls.service';
 import { StudentsActions as A } from './students.actions';
+import { selectStudents } from './students.reducer';
 
 export const load$ = createEffect(
-  (actions$ = inject(Actions), api = inject(StudentsApi)) =>
+  (actions$ = inject(Actions), api = inject(StudentsApi), photoUrls = inject(StudentPhotoUrls)) =>
     actions$.pipe(
       ofType(A.load),
-      switchMap(() => api.list().pipe(
-        map((students) => A.loadSuccess({ students })),
-        catchError((error: unknown) => of(A.loadFailure({ error: getApiError(error, 'Unable to load students.') }))),
-      )),
+      switchMap(({ isActive }) => {
+        photoUrls.releaseAll();
+        return api.list(isActive).pipe(
+          map((students) => A.loadSuccess({ students })),
+          catchError((error: unknown) => of(A.loadFailure({ error: getApiError(error, 'Unable to load students.') }))),
+        );
+      }),
     ),
   { functional: true },
 );
@@ -59,6 +64,23 @@ export const deactivate$ = createEffect(
   { functional: true },
 );
 
+export const activate$ = createEffect(
+  (actions$ = inject(Actions), api = inject(StudentsApi), photoUrls = inject(StudentPhotoUrls)) =>
+    actions$.pipe(
+      ofType(A.activate),
+      exhaustMap(({ student }) => api.activate(student.id).pipe(
+        map(() => {
+          photoUrls.release(student.id);
+          return A.activateSuccess({ student });
+        }),
+        catchError((error: unknown) => of(A.activateFailure({
+          error: getApiError(error, 'Unable to reactivate this student.'),
+        }))),
+      )),
+    ),
+  { functional: true },
+);
+
 export const uploadPhoto$ = createEffect(
   (actions$ = inject(Actions), api = inject(StudentsApi)) =>
     actions$.pipe(
@@ -97,11 +119,14 @@ export const loadPhotoAfterUpload$ = createEffect(
 );
 
 export const loadPhoto$ = createEffect(
-  (actions$ = inject(Actions), api = inject(StudentsApi), photoUrls = inject(StudentPhotoUrls)) =>
+  (actions$ = inject(Actions), api = inject(StudentsApi), photoUrls = inject(StudentPhotoUrls), store = inject(Store)) =>
     actions$.pipe(
       ofType(A.loadPhoto),
       mergeMap(({ studentId }) => api.photo(studentId).pipe(
-        map((photo) => A.loadPhotoSuccess({ studentId, objectUrl: photoUrls.replace(studentId, photo) })),
+        withLatestFrom(store.select(selectStudents)),
+        mergeMap(([photo, students]) => students.some((student) => student.id === studentId)
+          ? of(A.loadPhotoSuccess({ studentId, objectUrl: photoUrls.replace(studentId, photo) }))
+          : EMPTY),
         catchError(() => of(A.loadPhotoFailure({ studentId }))),
       )),
     ),

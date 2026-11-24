@@ -27,7 +27,8 @@ public sealed record UpdateStudentRequest(
 public class StudentsController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct) => Ok(await sender.Send(new ListStudentsQuery(), ct));
+    public async Task<IActionResult> List([FromQuery] bool isActive = true, CancellationToken ct = default) =>
+        Ok(await sender.Send(new ListStudentsQuery(isActive), ct));
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
@@ -101,6 +102,13 @@ public class StudentsController(ISender sender) : ControllerBase
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
     {
         var result = await sender.Send(new DeactivateStudentCommand(id), ct);
+        return result is null ? NotFound() : NoContent();
+    }
+
+    [HttpPost("{id:guid}/activate")]
+    public async Task<IActionResult> Activate(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new ActivateStudentCommand(id), ct);
         return result is null ? NotFound() : NoContent();
     }
 

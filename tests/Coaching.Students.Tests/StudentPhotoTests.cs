@@ -126,8 +126,8 @@ public class StudentPhotoHandlerTests
         public Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default) =>
             Task.FromResult(students.SingleOrDefault(student => student.DeviceUserId == deviceUserId));
 
-        public Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<Student>>(students.Where(student => student.IsActive).ToList());
+        public Task<IReadOnlyList<Student>> ListAsync(bool isActive, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Student>>(students.Where(student => student.IsActive == isActive).ToList());
 
         public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos.ToDictionary(

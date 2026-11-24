@@ -226,6 +226,92 @@ public class StudentCreationTests
         Assert.Equal(0, store.SaveChangesCalls);
     }
 
+    [Fact]
+    public async Task Activate_restores_an_inactive_record_and_stages_an_active_sync_event()
+    {
+        var deactivatedAt = DateTimeOffset.UtcNow.AddDays(-1);
+        var student = new Student
+        {
+            StudentNo = "ST-2026-001",
+            FullName = "Amina Rahman",
+            ClassLevel = 8,
+            GuardianPhone = "+8801712345678",
+            DeviceUserId = "DEVICE-01",
+            IsActive = false,
+            DeactivatedAt = deactivatedAt,
+        };
+        var store = new InMemoryStudentStore { Students = [student] };
+        store.Photos.Add(new StudentPhoto
+        {
+            StudentId = student.Id,
+            Content = [0xFF, 0xD8, 0xFF],
+            ContentType = "image/jpeg",
+            SizeBytes = 3,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        var outbox = new RecordingStudentOutbox();
+        var handler = new ActivateStudentHandler(store, outbox);
+
+        var beforeActivation = await new ListStudentsHandler(store).Handle(new ListStudentsQuery(false), CancellationToken.None);
+        var result = await handler.Handle(new ActivateStudentCommand(student.Id), CancellationToken.None);
+        var activeStudents = await new ListStudentsHandler(store).Handle(new ListStudentsQuery(), CancellationToken.None);
+        var inactiveStudents = await new ListStudentsHandler(store).Handle(new ListStudentsQuery(false), CancellationToken.None);
+
+        Assert.Single(beforeActivation);
+        Assert.NotNull(result);
+        Assert.True(result.WasActivated);
+        Assert.True(student.IsActive);
+        Assert.Null(student.DeactivatedAt);
+        Assert.Equal("ST-2026-001", student.StudentNo);
+        Assert.Equal("DEVICE-01", student.DeviceUserId);
+        Assert.Single(store.Photos);
+        Assert.Equal(1, store.SaveChangesCalls);
+        Assert.Equal(student.Id, Assert.Single(activeStudents).Id);
+        Assert.Empty(inactiveStudents);
+
+        var staged = Assert.Single(outbox.Events);
+        Assert.Equal(student.Id, staged.StudentId);
+        Assert.Equal("DEVICE-01", staged.DeviceUserId);
+        Assert.True(staged.IsActive);
+    }
+
+    [Fact]
+    public async Task Activate_is_idempotent_for_an_active_student()
+    {
+        var student = new Student
+        {
+            StudentNo = "ST-2026-001",
+            FullName = "Amina Rahman",
+            ClassLevel = 8,
+            GuardianPhone = "+8801712345678",
+        };
+        var store = new InMemoryStudentStore { Students = [student] };
+        var outbox = new RecordingStudentOutbox();
+        var handler = new ActivateStudentHandler(store, outbox);
+
+        var result = await handler.Handle(new ActivateStudentCommand(student.Id), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.False(result.WasActivated);
+        Assert.True(student.IsActive);
+        Assert.Empty(outbox.Events);
+        Assert.Equal(0, store.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task Activate_returns_null_for_an_unknown_student_without_changing_state()
+    {
+        var store = new InMemoryStudentStore();
+        var outbox = new RecordingStudentOutbox();
+        var handler = new ActivateStudentHandler(store, outbox);
+
+        var result = await handler.Handle(new ActivateStudentCommand(Guid.NewGuid()), CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Empty(outbox.Events);
+        Assert.Equal(0, store.SaveChangesCalls);
+    }
+
     [Theory]
     [InlineData("studentNo")]
     [InlineData("deviceUserId")]
@@ -299,8 +385,8 @@ public class StudentCreationTests
         public Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default) =>
             Task.FromResult(Students.SingleOrDefault(student => student.DeviceUserId == deviceUserId));
 
-        public Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<Student>>(Students.Where(student => student.IsActive).ToList());
+        public Task<IReadOnlyList<Student>> ListAsync(bool isActive, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Student>>(Students.Where(student => student.IsActive == isActive).ToList());
 
         public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos.ToDictionary(

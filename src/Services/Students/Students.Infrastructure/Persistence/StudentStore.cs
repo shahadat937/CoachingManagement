@@ -20,10 +20,10 @@ public sealed class StudentStore(StudentsDbContext db) : IStudentStore
     public Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default) =>
         db.Students.AsNoTracking().FirstOrDefaultAsync(student => student.DeviceUserId == deviceUserId, ct);
 
-    public async Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<Student>> ListAsync(bool isActive, CancellationToken ct = default) =>
         await db.Students
             .AsNoTracking()
-            .Where(student => student.IsActive)
+            .Where(student => student.IsActive == isActive)
             .OrderBy(student => student.FullName)
             .ToListAsync(ct);
 

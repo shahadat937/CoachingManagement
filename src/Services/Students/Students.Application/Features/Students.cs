@@ -44,13 +44,13 @@ public class StudentConflictException : Exception
     public string Field { get; }
 }
 
-public record ListStudentsQuery : IRequest<IReadOnlyList<StudentResponse>>;
+public record ListStudentsQuery(bool IsActive = true) : IRequest<IReadOnlyList<StudentResponse>>;
 
 public class ListStudentsHandler(IStudentStore store) : IRequestHandler<ListStudentsQuery, IReadOnlyList<StudentResponse>>
 {
     public async Task<IReadOnlyList<StudentResponse>> Handle(ListStudentsQuery query, CancellationToken ct)
     {
-        var students = await store.ListAsync(ct);
+        var students = await store.ListAsync(query.IsActive, ct);
         var photos = await store.ListPhotoMetadataAsync(ct);
         return students.Select(student =>
         {
@@ -256,6 +256,38 @@ public class DeactivateStudentHandler(IStudentStore store, IStudentEventOutbox o
         await store.SaveChangesAsync(ct);
 
         return new DeactivateStudentResult(true);
+    }
+}
+
+public sealed record ActivateStudentResult(bool WasActivated);
+
+public record ActivateStudentCommand(Guid Id) : IRequest<ActivateStudentResult?>;
+
+public class ActivateStudentHandler(IStudentStore store, IStudentEventOutbox outbox)
+    : IRequestHandler<ActivateStudentCommand, ActivateStudentResult?>
+{
+    public async Task<ActivateStudentResult?> Handle(ActivateStudentCommand command, CancellationToken ct)
+    {
+        var student = await store.GetByIdForUpdateAsync(command.Id, ct);
+        if (student is null)
+            return null;
+
+        if (student.IsActive)
+            return new ActivateStudentResult(false);
+
+        student.IsActive = true;
+        student.DeactivatedAt = null;
+
+        await outbox.EnqueueAsync(new StudentEnrolled(
+            student.Id,
+            student.FullName,
+            student.ClassLevel,
+            student.DeviceUserId,
+            student.GuardianPhone,
+            student.IsActive), ct);
+        await store.SaveChangesAsync(ct);
+
+        return new ActivateStudentResult(true);
     }
 }
 
