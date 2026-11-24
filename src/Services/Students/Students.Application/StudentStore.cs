@@ -9,6 +9,7 @@ namespace Coaching.Students.Application;
 public interface IStudentStore
 {
     Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<Student?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default);
     Task<Student?> FindByStudentNoAsync(string studentNo, CancellationToken ct = default);
     Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default);

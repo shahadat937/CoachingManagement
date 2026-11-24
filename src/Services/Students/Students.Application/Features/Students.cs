@@ -133,27 +133,26 @@ public class CreateStudentHandler(IStudentStore store, IStudentEventOutbox outbo
 {
     public async Task<StudentResponse> Handle(CreateStudentCommand command, CancellationToken ct)
     {
-        var studentNo = NormalizeStudentNo(command.StudentNo);
-        var fullName = NormalizeRequired(command.FullName, "fullName", "Full name", 256);
-        var guardianPhone = NormalizeGuardianPhone(command.GuardianPhone);
-        var deviceUserId = NormalizeOptional(command.DeviceUserId, "deviceUserId", "Device user ID", 128);
+        var input = StudentInputValidation.Validate(
+            command.StudentNo,
+            command.FullName,
+            command.ClassLevel,
+            command.GuardianPhone,
+            command.DeviceUserId);
 
-        if (command.ClassLevel is < 1 or > 12)
-            throw new StudentInputException("classLevel", "Class level must be between 1 and 12.");
-
-        if (await store.FindByStudentNoAsync(studentNo, ct) is not null)
+        if (await store.FindByStudentNoAsync(input.StudentNo, ct) is not null)
             throw new StudentConflictException("studentNo", "A student with this student number already exists.");
 
-        if (deviceUserId is not null && await store.FindByDeviceUserIdAsync(deviceUserId, ct) is not null)
+        if (input.DeviceUserId is not null && await store.FindByDeviceUserIdAsync(input.DeviceUserId, ct) is not null)
             throw new StudentConflictException("deviceUserId", "This device user ID is already assigned to another student.");
 
         var student = new Student
         {
-            StudentNo = studentNo,
-            FullName = fullName,
-            ClassLevel = command.ClassLevel,
-            GuardianPhone = guardianPhone,
-            DeviceUserId = deviceUserId,
+            StudentNo = input.StudentNo,
+            FullName = input.FullName,
+            ClassLevel = input.ClassLevel,
+            GuardianPhone = input.GuardianPhone,
+            DeviceUserId = input.DeviceUserId,
         };
 
         await store.AddAsync(student, ct);
@@ -165,6 +164,93 @@ public class CreateStudentHandler(IStudentStore store, IStudentEventOutbox outbo
             student.GuardianPhone), ct);
         await store.SaveChangesAsync(ct);
         return StudentResponse.From(student);
+    }
+}
+
+public record UpdateStudentCommand(
+    Guid Id,
+    string? StudentNo,
+    string? FullName,
+    int ClassLevel,
+    string? GuardianPhone,
+    string? DeviceUserId) : IRequest<StudentResponse?>;
+
+public class UpdateStudentHandler(IStudentStore store, IStudentEventOutbox outbox) : IRequestHandler<UpdateStudentCommand, StudentResponse?>
+{
+    public async Task<StudentResponse?> Handle(UpdateStudentCommand command, CancellationToken ct)
+    {
+        var input = StudentInputValidation.Validate(
+            command.StudentNo,
+            command.FullName,
+            command.ClassLevel,
+            command.GuardianPhone,
+            command.DeviceUserId);
+
+        var student = await store.GetByIdForUpdateAsync(command.Id, ct);
+        if (student is null)
+            return null;
+
+        var studentNoOwner = await store.FindByStudentNoAsync(input.StudentNo, ct);
+        if (studentNoOwner is not null && studentNoOwner.Id != student.Id)
+            throw new StudentConflictException("studentNo", "A student with this student number already exists.");
+
+        if (input.DeviceUserId is not null)
+        {
+            var deviceUserIdOwner = await store.FindByDeviceUserIdAsync(input.DeviceUserId, ct);
+            if (deviceUserIdOwner is not null && deviceUserIdOwner.Id != student.Id)
+            {
+                throw new StudentConflictException("deviceUserId", "This device user ID is already assigned to another student.");
+            }
+        }
+
+        student.StudentNo = input.StudentNo;
+        student.FullName = input.FullName;
+        student.ClassLevel = input.ClassLevel;
+        student.GuardianPhone = input.GuardianPhone;
+        student.DeviceUserId = input.DeviceUserId;
+
+        await outbox.EnqueueAsync(new StudentEnrolled(
+            student.Id,
+            student.FullName,
+            student.ClassLevel,
+            student.DeviceUserId,
+            student.GuardianPhone), ct);
+        await store.SaveChangesAsync(ct);
+
+        return StudentResponse.From(student, await store.GetPhotoMetadataAsync(student.Id, ct));
+    }
+}
+
+internal sealed record ValidatedStudentInput(
+    string StudentNo,
+    string FullName,
+    int ClassLevel,
+    string GuardianPhone,
+    string? DeviceUserId);
+
+internal static class StudentInputValidation
+{
+    public static ValidatedStudentInput Validate(
+        string? studentNo,
+        string? fullName,
+        int classLevel,
+        string? guardianPhone,
+        string? deviceUserId)
+    {
+        var normalizedStudentNo = NormalizeStudentNo(studentNo);
+        var normalizedFullName = NormalizeRequired(fullName, "fullName", "Full name", 256);
+        var normalizedGuardianPhone = NormalizeGuardianPhone(guardianPhone);
+        var normalizedDeviceUserId = NormalizeOptional(deviceUserId, "deviceUserId", "Device user ID", 128);
+
+        if (classLevel is < 1 or > 12)
+            throw new StudentInputException("classLevel", "Class level must be between 1 and 12.");
+
+        return new ValidatedStudentInput(
+            normalizedStudentNo,
+            normalizedFullName,
+            classLevel,
+            normalizedGuardianPhone,
+            normalizedDeviceUserId);
     }
 
     private static string NormalizeStudentNo(string? value) =>

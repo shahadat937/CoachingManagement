@@ -37,6 +37,14 @@ export const studentsFeature = createFeature({
       success: `${student.fullName} was added to the student directory.`,
     })),
     on(A.createFailure, (state, { error }) => ({ ...state, saving: false, error })),
+    on(A.update, (state) => ({ ...state, saving: true, error: null, success: null })),
+    on(A.updateSuccess, (state, { student }) => ({
+      ...state,
+      students: state.students.map((item) => item.id === student.id ? { ...item, ...student } : item),
+      saving: false,
+      success: `${student.fullName} was updated.`,
+    })),
+    on(A.updateFailure, (state, { error }) => ({ ...state, saving: false, error })),
     on(A.uploadPhoto, (state, { studentId }) => ({ ...state, uploadingPhotoId: studentId, error: null, success: null })),
     on(A.uploadPhotoSuccess, (state, { studentId, metadata }) => {
       const student = state.students.find((item) => item.id === studentId);

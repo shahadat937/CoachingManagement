@@ -117,6 +117,9 @@ public class StudentPhotoHandlerTests
         public Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(students.SingleOrDefault(student => student.Id == id));
 
+        public Task<Student?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(students.SingleOrDefault(student => student.Id == id));
+
         public Task<Student?> FindByStudentNoAsync(string studentNo, CancellationToken ct = default) =>
             Task.FromResult(students.SingleOrDefault(student => student.StudentNo == studentNo));
 

@@ -14,6 +14,13 @@ public sealed record CreateStudentRequest(
     string? GuardianPhone,
     string? DeviceUserId);
 
+public sealed record UpdateStudentRequest(
+    string? StudentNo,
+    string? FullName,
+    int ClassLevel,
+    string? GuardianPhone,
+    string? DeviceUserId);
+
 [ApiController]
 [Route("api/students")]
 [Authorize(Policy = AuthorizationPolicies.StudentManagement)]
@@ -41,6 +48,37 @@ public class StudentsController(ISender sender) : ControllerBase
                 request.GuardianPhone,
                 request.DeviceUserId), ct);
             return CreatedAtAction(nameof(Get), new { id = student.Id }, student);
+        }
+        catch (StudentInputException exception)
+        {
+            return ValidationProblem(new ValidationProblemDetails(
+                new Dictionary<string, string[]> { [exception.Field] = [exception.Message] }));
+        }
+        catch (StudentConflictException exception)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Student already exists",
+                Detail = exception.Message,
+                Status = StatusCodes.Status409Conflict,
+                Extensions = { ["field"] = exception.Field },
+            });
+        }
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, UpdateStudentRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var student = await sender.Send(new UpdateStudentCommand(
+                id,
+                request.StudentNo,
+                request.FullName,
+                request.ClassLevel,
+                request.GuardianPhone,
+                request.DeviceUserId), ct);
+            return student is null ? NotFound() : Ok(student);
         }
         catch (StudentInputException exception)
         {

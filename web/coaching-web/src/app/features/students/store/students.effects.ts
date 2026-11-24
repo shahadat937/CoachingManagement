@@ -30,6 +30,18 @@ export const create$ = createEffect(
   { functional: true },
 );
 
+export const update$ = createEffect(
+  (actions$ = inject(Actions), api = inject(StudentsApi)) =>
+    actions$.pipe(
+      ofType(A.update),
+      exhaustMap(({ studentId, request }) => api.update(studentId, request).pipe(
+        map((student) => A.updateSuccess({ student })),
+        catchError((error: unknown) => of(A.updateFailure({ error: getApiError(error, 'Unable to update this student.') }))),
+      )),
+    ),
+  { functional: true },
+);
+
 export const uploadPhoto$ = createEffect(
   (actions$ = inject(Actions), api = inject(StudentsApi)) =>
     actions$.pipe(

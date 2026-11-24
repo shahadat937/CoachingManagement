@@ -11,6 +11,9 @@ public sealed class StudentStore(StudentsDbContext db) : IStudentStore
     public Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         db.Students.AsNoTracking().FirstOrDefaultAsync(student => student.Id == id, ct);
 
+    public Task<Student?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default) =>
+        db.Students.FirstOrDefaultAsync(student => student.Id == id, ct);
+
     public Task<Student?> FindByStudentNoAsync(string studentNo, CancellationToken ct = default) =>
         db.Students.AsNoTracking().FirstOrDefaultAsync(student => student.StudentNo == studentNo, ct);
 

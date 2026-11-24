@@ -74,7 +74,7 @@ import {
           <p class="empty">Loading learner records…</p>
         } @else if (filteredStudents().length) {
           <table>
-            <thead><tr><th>Student</th><th>Student no.</th><th>Class</th><th>Guardian contact</th><th>Device identity</th><th>Added</th></tr></thead>
+            <thead><tr><th>Student</th><th>Student no.</th><th>Class</th><th>Guardian contact</th><th>Device identity</th><th>Added</th><th>Actions</th></tr></thead>
             <tbody>
               @for (student of filteredStudents(); track student.id) {
                 <tr>
@@ -84,6 +84,7 @@ import {
                   <td>{{ student.guardianPhone }}</td>
                   <td>@if (student.deviceUserId) { <span class="device">{{ student.deviceUserId }}</span> } @else { <span class="muted">Not assigned</span> }</td>
                   <td class="muted">{{ student.createdAt | date:'dd MMM y' }}</td>
+                  <td><button class="secondary" type="button" (click)="openEditForm(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Edit ' + student.fullName">Edit</button></td>
                 </tr>
               }
             </tbody>
@@ -166,6 +167,53 @@ import {
         </section>
       </div>
     }
+
+    @if (editingStudent(); as student) {
+      <div class="dialog-backdrop" (click)="closeEditFromBackdrop($event)">
+        <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="edit-student-title">
+          <header class="dialog-head">
+            <div><p class="eyebrow">Learner record</p><h2 id="edit-student-title">Edit student</h2><p>Update {{ student.fullName }}'s directory details. Their passport photo stays unchanged.</p></div>
+            <button class="close" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()" aria-label="Close edit student form">&times;</button>
+          </header>
+          <form [formGroup]="editStudentForm" (ngSubmit)="updateStudent()" novalidate>
+            @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+            <div class="field">
+              <label for="edit-studentNo">Student number</label>
+              <input id="edit-studentNo" formControlName="studentNo" autocomplete="off" [class.invalid]="isEditInvalid('studentNo')" />
+              @if (isEditInvalid('studentNo')) { <p class="field-error">Use 2-64 letters, numbers, spaces or hyphens.</p> }
+            </div>
+            <div class="field">
+              <label for="edit-fullName">Full name</label>
+              <input id="edit-fullName" formControlName="fullName" autocomplete="name" [class.invalid]="isEditInvalid('fullName')" />
+              @if (isEditInvalid('fullName')) { <p class="field-error">Enter the learner's full name (2-256 characters).</p> }
+            </div>
+            <div class="field">
+              <label for="edit-classLevel">Class level</label>
+              <select id="edit-classLevel" formControlName="classLevel" [class.invalid]="isEditInvalid('classLevel')">
+                <option [ngValue]="0" disabled>Select a class level</option>
+                @for (level of classLevels; track level) { <option [ngValue]="level">Class {{ level }}</option> }
+              </select>
+              @if (isEditInvalid('classLevel')) { <p class="field-error">Choose a class level from 1 to 12.</p> }
+            </div>
+            <div class="field">
+              <label for="edit-guardianPhone">Guardian phone</label>
+              <input id="edit-guardianPhone" formControlName="guardianPhone" autocomplete="tel" inputmode="tel" [class.invalid]="isEditInvalid('guardianPhone')" />
+              @if (isEditInvalid('guardianPhone')) { <p class="field-error">Enter a valid guardian phone number.</p> }
+            </div>
+            <div class="field">
+              <label for="edit-deviceUserId">Device identity <span class="optional">Optional</span></label>
+              <input id="edit-deviceUserId" formControlName="deviceUserId" autocomplete="off" [class.invalid]="isEditInvalid('deviceUserId')" />
+              <p class="help">Assign this only when the learner is already enrolled on an attendance device.</p>
+              @if (isEditInvalid('deviceUserId')) { <p class="field-error">Device identity must be 128 characters or fewer.</p> }
+            </div>
+            <div class="form-actions">
+              <button class="secondary" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()">Cancel</button>
+              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Saving changes... } @else { Save changes }</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    }
   `,
 })
 export class StudentsPageComponent implements OnInit, OnDestroy {
@@ -185,6 +233,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   readonly success = this.store.selectSignal(selectSuccess);
   readonly query = signal('');
   readonly formOpen = signal(false);
+  readonly editingStudent = signal<Student | null>(null);
   readonly selectedPhoto = signal<File | null>(null);
   readonly photoPreviewUrl = signal<string | null>(null);
   readonly photoError = signal<string | null>(null);
@@ -199,6 +248,13 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     return students.length ? Math.round((students.filter((student) => !!student.guardianPhone.trim()).length / students.length) * 100) : 0;
   });
   readonly studentForm = this.formBuilder.nonNullable.group({
+    studentNo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(64), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9 -]*$/)]],
+    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(256)]],
+    classLevel: [0, [Validators.required, Validators.min(1), Validators.max(12)]],
+    guardianPhone: ['', [Validators.required, Validators.maxLength(64), Validators.pattern(/^(?=(?:.*\d){6})\+?[0-9][0-9 ()-]*$/)]],
+    deviceUserId: ['', [Validators.maxLength(128)]],
+  });
+  readonly editStudentForm = this.formBuilder.nonNullable.group({
     studentNo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(64), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9 -]*$/)]],
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(256)]],
     classLevel: [0, [Validators.required, Validators.min(1), Validators.max(12)]],
@@ -229,6 +285,15 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
         this.completeStudentCreation();
       }
     });
+
+    this.actions$.pipe(
+      ofType(StudentsActions.updateSuccess),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(({ student }) => {
+      if (this.editingStudent()?.id === student.id) {
+        this.completeStudentEdit();
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -236,9 +301,29 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   }
 
   openCreateForm(): void {
+    if (this.isSubmitting()) {
+      return;
+    }
+
     this.store.dispatch(StudentsActions.clearFeedback());
     this.resetCreateForm();
     this.formOpen.set(true);
+  }
+
+  openEditForm(student: Student): void {
+    if (this.isSubmitting()) {
+      return;
+    }
+
+    this.store.dispatch(StudentsActions.clearFeedback());
+    this.editStudentForm.reset({
+      studentNo: student.studentNo,
+      fullName: student.fullName,
+      classLevel: student.classLevel,
+      guardianPhone: student.guardianPhone,
+      deviceUserId: student.deviceUserId ?? '',
+    });
+    this.editingStudent.set(student);
   }
 
   closeCreateForm(): void {
@@ -254,12 +339,29 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  closeEditForm(): void {
+    if (!this.isSubmitting()) {
+      this.completeStudentEdit();
+    }
+  }
+
+  closeEditFromBackdrop(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.closeEditForm();
+    }
+  }
+
   setQuery(value: string): void {
     this.query.set(value);
   }
 
   isInvalid(name: 'studentNo' | 'fullName' | 'classLevel' | 'guardianPhone' | 'deviceUserId'): boolean {
     const control = this.studentForm.controls[name];
+    return control.invalid && (control.touched || control.dirty);
+  }
+
+  isEditInvalid(name: 'studentNo' | 'fullName' | 'classLevel' | 'guardianPhone' | 'deviceUserId'): boolean {
+    const control = this.editStudentForm.controls[name];
     return control.invalid && (control.touched || control.dirty);
   }
 
@@ -286,6 +388,30 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
 
     const value = this.studentForm.getRawValue();
     this.store.dispatch(StudentsActions.create({
+      request: {
+        studentNo: value.studentNo.trim(),
+        fullName: value.fullName.trim(),
+        classLevel: value.classLevel,
+        guardianPhone: value.guardianPhone.trim(),
+        deviceUserId: value.deviceUserId.trim() || null,
+      },
+    }));
+  }
+
+  updateStudent(): void {
+    const student = this.editingStudent();
+    if (!student || this.isSubmitting()) {
+      return;
+    }
+
+    if (this.editStudentForm.invalid) {
+      this.editStudentForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.editStudentForm.getRawValue();
+    this.store.dispatch(StudentsActions.update({
+      studentId: student.id,
       request: {
         studentNo: value.studentNo.trim(),
         fullName: value.fullName.trim(),
@@ -425,6 +551,11 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   private completeStudentCreation(): void {
     this.formOpen.set(false);
     this.resetCreateForm();
+  }
+
+  private completeStudentEdit(): void {
+    this.editingStudent.set(null);
+    this.editStudentForm.reset({ studentNo: '', fullName: '', classLevel: 0, guardianPhone: '', deviceUserId: '' });
   }
 
   private resetCreateForm(): void {

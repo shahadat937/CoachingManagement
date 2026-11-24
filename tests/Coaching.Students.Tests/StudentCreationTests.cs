@@ -88,12 +88,124 @@ public class StudentCreationTests
         Assert.Equal("deviceUserId", exception.Field);
     }
 
+    [Fact]
+    public async Task Update_normalizes_values_preserves_photo_and_stages_the_student_sync_event()
+    {
+        var student = new Student
+        {
+            StudentNo = "ST-2026-001",
+            FullName = "Old Name",
+            ClassLevel = 7,
+            GuardianPhone = "+8801712345678",
+            DeviceUserId = "DEVICE-01",
+        };
+        var photoUpdatedAt = DateTimeOffset.UtcNow.AddDays(-1);
+        var store = new InMemoryStudentStore { Students = [student] };
+        store.Photos.Add(new StudentPhoto
+        {
+            StudentId = student.Id,
+            Content = [0xFF, 0xD8, 0xFF],
+            ContentType = "image/jpeg",
+            SizeBytes = 3,
+            UpdatedAt = photoUpdatedAt,
+        });
+        var outbox = new RecordingStudentOutbox();
+        var handler = new UpdateStudentHandler(store, outbox);
+
+        var updated = await handler.Handle(new UpdateStudentCommand(
+            student.Id,
+            " st-2026-001 ",
+            "  Amina Rahman  ",
+            8,
+            " +880 1712-345678 ",
+            " DEVICE-01 "), CancellationToken.None);
+
+        Assert.NotNull(updated);
+        Assert.Equal("ST-2026-001", updated.StudentNo);
+        Assert.Equal("Amina Rahman", updated.FullName);
+        Assert.Equal(8, updated.ClassLevel);
+        Assert.Equal("+880 1712-345678", updated.GuardianPhone);
+        Assert.Equal("DEVICE-01", updated.DeviceUserId);
+        Assert.True(updated.HasPhoto);
+        Assert.Equal(photoUpdatedAt, updated.PhotoUpdatedAt);
+        Assert.Equal("Amina Rahman", student.FullName);
+        Assert.Equal(8, student.ClassLevel);
+        Assert.Equal([0xFF, 0xD8, 0xFF], Assert.Single(store.Photos).Content);
+        Assert.Equal(1, store.SaveChangesCalls);
+
+        var staged = Assert.Single(outbox.Events);
+        Assert.Equal(student.Id, staged.StudentId);
+        Assert.Equal("Amina Rahman", staged.FullName);
+        Assert.Equal(8, staged.ClassLevel);
+        Assert.Equal("DEVICE-01", staged.DeviceUserId);
+        Assert.Equal("+880 1712-345678", staged.GuardianPhone);
+    }
+
+    [Theory]
+    [InlineData("studentNo")]
+    [InlineData("deviceUserId")]
+    public async Task Update_rejects_unique_values_assigned_to_another_student(string field)
+    {
+        var student = new Student
+        {
+            StudentNo = "ST-2026-001",
+            FullName = "Amina Rahman",
+            ClassLevel = 8,
+            GuardianPhone = "+8801712345678",
+            DeviceUserId = "DEVICE-01",
+        };
+        var otherStudent = new Student
+        {
+            StudentNo = "ST-2026-002",
+            FullName = "Other Student",
+            ClassLevel = 8,
+            GuardianPhone = "+8801812345678",
+            DeviceUserId = "DEVICE-02",
+        };
+        var store = new InMemoryStudentStore { Students = [student, otherStudent] };
+        var outbox = new RecordingStudentOutbox();
+        var handler = new UpdateStudentHandler(store, outbox);
+        var command = field == "studentNo"
+            ? new UpdateStudentCommand(student.Id, otherStudent.StudentNo, student.FullName, student.ClassLevel, student.GuardianPhone, student.DeviceUserId)
+            : new UpdateStudentCommand(student.Id, student.StudentNo, student.FullName, student.ClassLevel, student.GuardianPhone, otherStudent.DeviceUserId);
+
+        var exception = await Assert.ThrowsAsync<StudentConflictException>(() => handler.Handle(command, CancellationToken.None));
+
+        Assert.Equal(field, exception.Field);
+        Assert.Empty(outbox.Events);
+        Assert.Equal(0, store.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task Update_returns_null_for_an_unknown_student_without_staging_an_event()
+    {
+        var store = new InMemoryStudentStore();
+        var outbox = new RecordingStudentOutbox();
+        var handler = new UpdateStudentHandler(store, outbox);
+
+        var updated = await handler.Handle(new UpdateStudentCommand(
+            Guid.NewGuid(),
+            "ST-2026-001",
+            "Amina Rahman",
+            8,
+            "+8801712345678",
+            null), CancellationToken.None);
+
+        Assert.Null(updated);
+        Assert.Empty(outbox.Events);
+        Assert.Equal(0, store.SaveChangesCalls);
+    }
+
     private sealed class InMemoryStudentStore : IStudentStore
     {
         public List<Student> Students { get; init; } = [];
         public List<StudentPhoto> Photos { get; } = [];
+        public int SaveChangesCalls { get; private set; }
 
         public Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(Students.SingleOrDefault(student => student.Id == id));
+
+        public Task<Student?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(Students.SingleOrDefault(student => student.Id == id));
 
         public Task<Student?> FindByStudentNoAsync(string studentNo, CancellationToken ct = default) =>
@@ -136,7 +248,11 @@ public class StudentCreationTests
             return Task.CompletedTask;
         }
 
-        public Task<int> SaveChangesAsync(CancellationToken ct = default) => Task.FromResult(1);
+        public Task<int> SaveChangesAsync(CancellationToken ct = default)
+        {
+            SaveChangesCalls++;
+            return Task.FromResult(1);
+        }
     }
 
     private sealed class RecordingStudentOutbox : IStudentEventOutbox
