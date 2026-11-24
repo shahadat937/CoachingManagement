@@ -1,9 +1,9 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
+import { I18nService } from '../../../core/i18n/i18n.service';
 import { StudentPhotoUrls } from '../data/student-photo-urls.service';
 import { Student } from '../data/student.models';
 import { StudentsActions } from '../store/students.actions';
@@ -24,7 +24,7 @@ import {
 @Component({
   selector: 'app-students-page',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host { display: block; }
@@ -53,65 +53,65 @@ import {
   template: `
     <section class="page-head">
       <div>
-        <p class="eyebrow">Student management</p>
-        <h1>Student directory</h1>
-        <p class="description">Add new learners, keep guardian contacts current and find each class record in one secure place.</p>
+        <p class="eyebrow">{{ i18n.t('students.management') }}</p>
+        <h1>{{ i18n.t('students.directory') }}</h1>
+        <p class="description">{{ i18n.t('students.description') }}</p>
       </div>
-      @if (isActiveDirectory()) { <button class="primary" type="button" (click)="openCreateForm()"><span aria-hidden="true">＋</span> Add student</button> }
+      @if (isActiveDirectory()) { <button class="primary" type="button" (click)="openCreateForm()"><span aria-hidden="true">+</span> {{ i18n.t('students.add') }}</button> }
     </section>
 
-    <section class="metrics" aria-label="Student directory summary">
-      <article class="metric indigo"><span>{{ isActiveDirectory() ? 'Active learners' : 'Inactive learners' }}</span><strong>{{ totalCount() }}</strong><small>{{ isActiveDirectory() ? 'Records available for attendance' : 'Archived records retained securely' }}</small></article>
-      <article class="metric cyan"><span>Class levels</span><strong>{{ classCount() }}</strong><small>Represented in the current results</small></article>
-      <article class="metric violet"><span>Guardian contacts</span><strong>{{ contactCoverage() }}%</strong><small>Records with a contact number</small></article>
+    <section class="metrics" [attr.aria-label]="i18n.t('students.summary')">
+      <article class="metric indigo"><span>{{ i18n.t(isActiveDirectory() ? 'students.activeLearners' : 'students.inactiveLearners') }}</span><strong>{{ totalCount() }}</strong><small>{{ i18n.t(isActiveDirectory() ? 'students.recordsForAttendance' : 'students.archivedRecords') }}</small></article>
+      <article class="metric cyan"><span>{{ i18n.t('students.classLevels') }}</span><strong>{{ classCount() }}</strong><small>{{ i18n.t('students.classLevelsDetail') }}</small></article>
+      <article class="metric violet"><span>{{ i18n.t('students.guardianContacts') }}</span><strong>{{ contactCoverage() }}%</strong><small>{{ i18n.t('students.contactsDetail') }}</small></article>
     </section>
 
-    @if (success(); as message) { <div class="notice success" role="status"><span>{{ message }}</span><button type="button" (click)="clearFeedback()" aria-label="Dismiss confirmation">×</button></div> }
-    @if (error(); as message) { <div class="notice error" role="alert"><span>{{ message }}</span><button type="button" (click)="clearFeedback()" aria-label="Dismiss error">×</button></div> }
+    @if (success(); as message) { <div class="notice success" role="status"><span>{{ feedbackMessage(message) }}</span><button type="button" (click)="clearFeedback()" [attr.aria-label]="i18n.t('students.dismissConfirmation')">×</button></div> }
+    @if (error(); as message) { <div class="notice error" role="alert"><span>{{ feedbackMessage(message) }}</span><button type="button" (click)="clearFeedback()" [attr.aria-label]="i18n.t('students.dismissError')">×</button></div> }
 
     <section class="workspace" aria-labelledby="directory-heading">
       <div class="workspace-top">
-        <div><h2 id="directory-heading">{{ isActiveDirectory() ? 'Active learner records' : 'Inactive learner records' }}</h2><p>{{ loading() ? 'Refreshing the protected directory…' : isActiveDirectory() ? 'Search learners currently eligible for attendance.' : 'Review archived learners and reactivate them when they return.' }}</p></div>
+        <div><h2 id="directory-heading">{{ i18n.t(isActiveDirectory() ? 'students.activeRecords' : 'students.inactiveRecords') }}</h2><p>{{ i18n.t(loading() ? 'students.refreshing' : isActiveDirectory() ? 'students.activeIntro' : 'students.inactiveIntro') }}</p></div>
         <div class="directory-tools">
-          <div class="status-tabs" aria-label="Student record status">
-            <button class="secondary status-tab" [class.active]="isActiveDirectory()" [attr.aria-pressed]="isActiveDirectory()" type="button" (click)="setDirectoryStatus('active')" [disabled]="isSubmitting()">Active</button>
-            <button class="secondary status-tab" [class.active]="!isActiveDirectory()" [attr.aria-pressed]="!isActiveDirectory()" type="button" (click)="setDirectoryStatus('inactive')" [disabled]="isSubmitting()">Inactive</button>
+          <div class="status-tabs" [attr.aria-label]="i18n.t('students.recordStatus')">
+            <button class="secondary status-tab" [class.active]="isActiveDirectory()" [attr.aria-pressed]="isActiveDirectory()" type="button" (click)="setDirectoryStatus('active')" [disabled]="isSubmitting()">{{ i18n.t('students.active') }}</button>
+            <button class="secondary status-tab" [class.active]="!isActiveDirectory()" [attr.aria-pressed]="!isActiveDirectory()" type="button" (click)="setDirectoryStatus('inactive')" [disabled]="isSubmitting()">{{ i18n.t('students.inactive') }}</button>
           </div>
-          <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [value]="query()" (input)="setQuery($any($event.target).value)" type="search" placeholder="Filter this page" aria-label="Filter students on this page" /></label>
+          <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [value]="query()" (input)="setQuery($any($event.target).value)" type="search" [placeholder]="i18n.t('students.filterPlaceholder')" [attr.aria-label]="i18n.t('students.filterAria')" /></label>
         </div>
       </div>
       <div class="table-wrap">
         @if (loading() && !students().length) {
-          <p class="empty">Loading learner records…</p>
+          <p class="empty">{{ i18n.t('students.loading') }}</p>
         } @else if (filteredStudents().length) {
           <table>
-            <thead><tr><th>Student</th><th>Student no.</th><th>Class</th><th>Guardian contact</th><th>Device identity</th><th>{{ isActiveDirectory() ? 'Added' : 'Inactivated' }}</th><th>Actions</th></tr></thead>
+            <thead><tr><th>{{ i18n.t('students.student') }}</th><th>{{ i18n.t('students.studentNumber') }}</th><th>{{ i18n.t('students.class') }}</th><th>{{ i18n.t('students.guardianPhone') }}</th><th>{{ i18n.t('students.deviceIdentity') }}</th><th>{{ i18n.t(isActiveDirectory() ? 'students.added' : 'students.inactivated') }}</th><th>{{ i18n.t('students.actions') }}</th></tr></thead>
             <tbody>
               @for (student of filteredStudents(); track student.id) {
                 <tr>
-                  <td class="student-name"><div class="student-identity">@if (photoUrl(student.id); as imageUrl) { <span class="avatar photo-avatar" tabindex="0" role="img" [attr.aria-label]="'Preview photo of ' + student.fullName" title="Hover or focus to preview passport photo" (mouseenter)="showPhotoPreview(student, imageUrl, $event)" (mouseleave)="hidePhotoPreview()" (focus)="showPhotoPreview(student, imageUrl, $event)" (blur)="hidePhotoPreview()" (keydown.escape)="hidePhotoPreview()"><img [src]="imageUrl" alt="" /></span> } @else { <span class="avatar" aria-hidden="true">{{ initials(student.fullName) }}</span> }<span>{{ student.fullName }}</span></div></td>
+                  <td class="student-name"><div class="student-identity">@if (photoUrl(student.id); as imageUrl) { <span class="avatar photo-avatar" tabindex="0" role="img" [attr.aria-label]="i18n.t('students.previewPhoto', { name: student.fullName })" [attr.title]="i18n.t('students.previewPhotoTitle')" (mouseenter)="showPhotoPreview(student, imageUrl, $event)" (mouseleave)="hidePhotoPreview()" (focus)="showPhotoPreview(student, imageUrl, $event)" (blur)="hidePhotoPreview()" (keydown.escape)="hidePhotoPreview()"><img [src]="imageUrl" alt="" /></span> } @else { <span class="avatar" aria-hidden="true">{{ initials(student.fullName) }}</span> }<span>{{ student.fullName }}</span></div></td>
                   <td class="student-number">{{ student.studentNo }}</td>
-                  <td>Class {{ student.classLevel }}</td>
+                  <td>{{ i18n.t('students.classLabel', { level: student.classLevel }) }}</td>
                   <td>{{ student.guardianPhone }}</td>
-                  <td>@if (student.deviceUserId) { <span class="device">{{ student.deviceUserId }}</span> } @else { <span class="muted">Not assigned</span> }</td>
-                  <td class="muted">@if (isActiveDirectory()) { {{ student.createdAt | date:'dd MMM y' }} } @else if (student.deactivatedAt) { {{ student.deactivatedAt | date:'dd MMM y' }} } @else { Not recorded }</td>
-                  <td>@if (isActiveDirectory()) { <div class="row-actions"><button class="secondary" type="button" (click)="openEditForm(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Edit ' + student.fullName">Edit</button><button class="secondary danger-action" type="button" (click)="openDeactivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Make ' + student.fullName + ' inactive'">Deactivate</button></div> } @else { <button class="secondary activate-action" type="button" (click)="openActivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Reactivate ' + student.fullName">Reactivate</button> }</td>
+                  <td>@if (student.deviceUserId) { <span class="device">{{ student.deviceUserId }}</span> } @else { <span class="muted">{{ i18n.t('students.notAssigned') }}</span> }</td>
+                  <td class="muted">@if (isActiveDirectory()) { {{ displayDate(student.createdAt) }} } @else if (student.deactivatedAt) { {{ displayDate(student.deactivatedAt) }} } @else { {{ i18n.t('students.notRecorded') }} }</td>
+                  <td>@if (isActiveDirectory()) { <div class="row-actions"><button class="secondary" type="button" (click)="openEditForm(student)" [disabled]="isSubmitting()" [attr.aria-label]="i18n.t('students.editAria', { name: student.fullName })">{{ i18n.t('students.edit') }}</button><button class="secondary danger-action" type="button" (click)="openDeactivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="i18n.t('students.deactivateAria', { name: student.fullName })">{{ i18n.t('students.deactivate') }}</button></div> } @else { <button class="secondary activate-action" type="button" (click)="openActivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="i18n.t('students.reactivateAria', { name: student.fullName })">{{ i18n.t('students.reactivate') }}</button> }</td>
                 </tr>
               }
             </tbody>
           </table>
         } @else {
-          <div class="empty"><strong>{{ query().trim() ? 'No matching students' : isActiveDirectory() ? 'No active students yet' : 'No inactive students' }}</strong>{{ query().trim() ? 'Try a student number, class or guardian phone.' : isActiveDirectory() ? 'Add the first learner to begin building your directory.' : 'Inactive learners stay here until you reactivate them.' }}</div>
+          <div class="empty"><strong>{{ i18n.t(query().trim() ? 'students.emptySearchTitle' : isActiveDirectory() ? 'students.emptyActiveTitle' : 'students.emptyInactiveTitle') }}</strong>{{ i18n.t(query().trim() ? 'students.emptySearchDetail' : isActiveDirectory() ? 'students.emptyActiveDetail' : 'students.emptyInactiveDetail') }}</div>
         }
       </div>
-      <footer class="footer"><span>{{ paginationSummary() }}</span><div class="row-actions" aria-label="Student directory pagination"><label class="muted">Rows <select class="secondary" [value]="pageSize()" (change)="setPageSize($any($event.target).value)" [disabled]="loading() || isSubmitting()" aria-label="Rows per page">@for (size of pageSizes; track size) { <option [value]="size">{{ size }}</option> }</select></label><button class="secondary" type="button" (click)="goToPage(currentPage() - 1)" [disabled]="!canGoPrevious()">Previous</button><span class="muted">Page {{ currentPage() }} of {{ displayTotalPages() }}</span><button class="secondary" type="button" (click)="goToPage(currentPage() + 1)" [disabled]="!canGoNext()">Next</button></div></footer>
+      <footer class="footer"><span>{{ paginationSummary() }}</span><div class="row-actions" [attr.aria-label]="i18n.t('students.pagination')"><label class="muted">{{ i18n.t('students.rows') }} <select class="secondary" [value]="pageSize()" (change)="setPageSize($any($event.target).value)" [disabled]="loading() || isSubmitting()" [attr.aria-label]="i18n.t('students.rowsPerPage')">@for (size of pageSizes; track size) { <option [value]="size">{{ size }}</option> }</select></label><button class="secondary" type="button" (click)="goToPage(currentPage() - 1)" [disabled]="!canGoPrevious()">{{ i18n.t('students.previous') }}</button><span class="muted">{{ i18n.t('students.pageOf', { page: currentPage(), total: displayTotalPages() }) }}</span><button class="secondary" type="button" (click)="goToPage(currentPage() + 1)" [disabled]="!canGoNext()">{{ i18n.t('students.next') }}</button></div></footer>
     </section>
 
     @if (hoveredPhoto(); as photo) {
       <aside class="passport-photo-popover" [style.left.px]="photo.left" [style.top.px]="photo.top" aria-hidden="true">
         <img [src]="photo.imageUrl" alt="" />
         <strong>{{ photo.fullName }}</strong>
-        <span>Class {{ photo.classLevel }} · Passport preview</span>
+        <span>{{ i18n.t('students.passportPreview', { level: photo.classLevel }) }}</span>
       </aside>
     }
 
@@ -119,60 +119,60 @@ import {
       <div class="dialog-backdrop" (click)="closeFromBackdrop($event)">
         <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="add-student-title">
           <header class="dialog-head">
-            <div><p class="eyebrow">New learner</p><h2 id="add-student-title">Add student</h2><p>Save a learner record with the details your coaching team needs.</p></div>
-            <button class="close" type="button" (click)="closeCreateForm()" [disabled]="isSubmitting()" aria-label="Close add student form">×</button>
+            <div><p class="eyebrow">{{ i18n.t('students.newLearner') }}</p><h2 id="add-student-title">{{ i18n.t('students.add') }}</h2><p>{{ i18n.t('students.addDescription') }}</p></div>
+            <button class="close" type="button" (click)="closeCreateForm()" [disabled]="isSubmitting()" [attr.aria-label]="i18n.t('students.closeAdd')">×</button>
           </header>
           <form [formGroup]="studentForm" (ngSubmit)="createStudent()" novalidate>
             <div class="photo-field">
-              <span class="photo-label">Student photo <span class="optional">Optional</span></span>
+              <span class="photo-label">{{ i18n.t('students.studentPhoto') }} <span class="optional">{{ i18n.t('students.optional') }}</span></span>
               <input #photoInput class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" (change)="onPhotoInput($event)" />
               @if (photoPreviewUrl(); as previewUrl) {
                 <div class="photo-preview">
-                  <img class="preview-image" [src]="previewUrl" alt="Selected student photo preview" />
-                  <div class="preview-details">@if (selectedPhoto(); as photo) { <strong>{{ photo.name }}</strong><span>{{ formatPhotoSize(photo.size) }} · Ready to upload</span> }</div>
-                  <div class="preview-actions"><button class="text-button" type="button" (click)="photoInput.click()" [disabled]="isSubmitting()">Replace</button><button class="text-button danger" type="button" (click)="removeSelectedPhoto()" [disabled]="isSubmitting()">Remove</button></div>
+                  <img class="preview-image" [src]="previewUrl" [alt]="i18n.t('students.selectedPhoto')" />
+                  <div class="preview-details">@if (selectedPhoto(); as photo) { <strong>{{ photo.name }}</strong><span>{{ i18n.t('students.photoReadyUpload', { size: formatPhotoSize(photo.size) }) }}</span> }</div>
+                  <div class="preview-actions"><button class="text-button" type="button" (click)="photoInput.click()" [disabled]="isSubmitting()">{{ i18n.t('students.replace') }}</button><button class="text-button danger" type="button" (click)="removeSelectedPhoto()" [disabled]="isSubmitting()">{{ i18n.t('students.remove') }}</button></div>
                 </div>
               } @else {
                 <button class="photo-dropzone" [class.dragging]="photoDropActive()" type="button" (click)="photoInput.click()" (dragover)="onPhotoDragOver($event)" (dragleave)="onPhotoDragLeave($event)" (drop)="onPhotoDrop($event)" [disabled]="isSubmitting()">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
-                  <span><strong>Drop a photo here or browse</strong>JPEG, PNG or WebP · up to 2 MB</span>
+                  <span><strong>{{ i18n.t('students.dropPhoto') }}</strong>{{ i18n.t('students.photoFormat') }}</span>
                 </button>
               }
               @if (photoError(); as message) { <p class="photo-error" role="alert">{{ message }}</p> }
             </div>
-            @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+            @if (error(); as message) { <p class="form-error" role="alert">{{ feedbackMessage(message) }}</p> }
             <div class="field">
-              <label for="studentNo">Student number</label>
-              <input id="studentNo" formControlName="studentNo" autocomplete="off" placeholder="e.g. ST-1025" [class.invalid]="isInvalid('studentNo')" />
-              @if (isInvalid('studentNo')) { <p class="field-error">Use 2–64 letters, numbers, spaces or hyphens.</p> }
+              <label for="studentNo">{{ i18n.t('students.studentNumberLabel') }}</label>
+              <input id="studentNo" formControlName="studentNo" autocomplete="off" [placeholder]="i18n.t('students.studentNumberPlaceholder')" [class.invalid]="isInvalid('studentNo')" />
+              @if (isInvalid('studentNo')) { <p class="field-error">{{ i18n.t('students.studentNumberError') }}</p> }
             </div>
             <div class="field">
-              <label for="fullName">Full name</label>
-              <input id="fullName" formControlName="fullName" autocomplete="name" placeholder="Learner's full name" [class.invalid]="isInvalid('fullName')" />
-              @if (isInvalid('fullName')) { <p class="field-error">Enter the learner's full name (2–256 characters).</p> }
+              <label for="fullName">{{ i18n.t('students.fullName') }}</label>
+              <input id="fullName" formControlName="fullName" autocomplete="name" [placeholder]="i18n.t('students.fullNamePlaceholder')" [class.invalid]="isInvalid('fullName')" />
+              @if (isInvalid('fullName')) { <p class="field-error">{{ i18n.t('students.fullNameError') }}</p> }
             </div>
             <div class="field">
-              <label for="classLevel">Class level</label>
+              <label for="classLevel">{{ i18n.t('students.classLevel') }}</label>
               <select id="classLevel" formControlName="classLevel" [class.invalid]="isInvalid('classLevel')">
-                <option [ngValue]="0" disabled>Select a class level</option>
-                @for (level of classLevels; track level) { <option [ngValue]="level">Class {{ level }}</option> }
+                <option [ngValue]="0" disabled>{{ i18n.t('students.chooseClass') }}</option>
+                @for (level of classLevels; track level) { <option [ngValue]="level">{{ i18n.t('students.classLabel', { level: level }) }}</option> }
               </select>
-              @if (isInvalid('classLevel')) { <p class="field-error">Choose a class level from 1 to 12.</p> }
+              @if (isInvalid('classLevel')) { <p class="field-error">{{ i18n.t('students.classLevelError') }}</p> }
             </div>
             <div class="field">
-              <label for="guardianPhone">Guardian phone</label>
-              <input id="guardianPhone" formControlName="guardianPhone" autocomplete="tel" inputmode="tel" placeholder="e.g. +880 1712 000 421" [class.invalid]="isInvalid('guardianPhone')" />
-              @if (isInvalid('guardianPhone')) { <p class="field-error">Enter a valid guardian phone number.</p> }
+              <label for="guardianPhone">{{ i18n.t('students.guardianPhoneLabel') }}</label>
+              <input id="guardianPhone" formControlName="guardianPhone" autocomplete="tel" inputmode="tel" [placeholder]="i18n.t('students.guardianPhonePlaceholder')" [class.invalid]="isInvalid('guardianPhone')" />
+              @if (isInvalid('guardianPhone')) { <p class="field-error">{{ i18n.t('students.guardianPhoneError') }}</p> }
             </div>
             <div class="field">
-              <label for="deviceUserId">Device identity <span class="optional">Optional</span></label>
-              <input id="deviceUserId" formControlName="deviceUserId" autocomplete="off" placeholder="Fingerprint / RFID / face ID" [class.invalid]="isInvalid('deviceUserId')" />
-              <p class="help">Assign this only when the learner is already enrolled on an attendance device.</p>
-              @if (isInvalid('deviceUserId')) { <p class="field-error">Device identity must be 128 characters or fewer.</p> }
+              <label for="deviceUserId">{{ i18n.t('students.deviceIdentityLabel') }} <span class="optional">{{ i18n.t('students.optional') }}</span></label>
+              <input id="deviceUserId" formControlName="deviceUserId" autocomplete="off" [placeholder]="i18n.t('students.deviceIdentityPlaceholder')" [class.invalid]="isInvalid('deviceUserId')" />
+              <p class="help">{{ i18n.t('students.deviceIdentityHelp') }}</p>
+              @if (isInvalid('deviceUserId')) { <p class="field-error">{{ i18n.t('students.deviceIdentityError') }}</p> }
             </div>
             <div class="form-actions">
-              <button class="secondary" type="button" (click)="closeCreateForm()" [disabled]="isSubmitting()">Cancel</button>
-              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Saving student… } @else if (uploadingPhotoId()) { <span class="saving-dot"></span>Uploading photo… } @else if (createdStudentId() && selectedPhoto()) { Retry photo upload } @else if (createdStudentId()) { Done } @else { Add student }</button>
+              <button class="secondary" type="button" (click)="closeCreateForm()" [disabled]="isSubmitting()">{{ i18n.t('students.cancel') }}</button>
+              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>{{ i18n.t('students.savingStudent') }} } @else if (uploadingPhotoId()) { <span class="saving-dot"></span>{{ i18n.t('students.uploadingPhoto') }} } @else if (createdStudentId() && selectedPhoto()) { {{ i18n.t('students.retryPhoto') }} } @else if (createdStudentId()) { {{ i18n.t('students.done') }} } @else { {{ i18n.t('students.add') }} }</button>
             </div>
           </form>
         </section>
@@ -183,67 +183,67 @@ import {
       <div class="dialog-backdrop" (click)="closeEditFromBackdrop($event)">
         <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="edit-student-title">
           <header class="dialog-head">
-            <div><p class="eyebrow">Learner record</p><h2 id="edit-student-title">Edit student</h2><p>Update {{ student.fullName }}'s directory details or replace their passport photo.</p></div>
-            <button class="close" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()" aria-label="Close edit student form">&times;</button>
+            <div><p class="eyebrow">{{ i18n.t('students.editRecord') }}</p><h2 id="edit-student-title">{{ i18n.t('students.editStudent') }}</h2><p>{{ i18n.t('students.editDescription', { name: student.fullName }) }}</p></div>
+            <button class="close" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()" [attr.aria-label]="i18n.t('students.closeEdit')">&times;</button>
           </header>
           <form [formGroup]="editStudentForm" (ngSubmit)="updateStudent()" novalidate>
             <div class="photo-field">
-              <span class="photo-label">Passport photo <span class="optional">Optional</span></span>
+              <span class="photo-label">{{ i18n.t('students.passportPhoto') }} <span class="optional">{{ i18n.t('students.optional') }}</span></span>
               <input #editPhotoInput class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" (change)="onEditPhotoInput($event)" />
               @if (editPhotoPreviewUrl(); as previewUrl) {
                 <div class="photo-preview">
-                  <img class="preview-image" [src]="previewUrl" alt="Selected replacement photo preview" />
-                  <div class="preview-details">@if (editSelectedPhoto(); as photo) { <strong>{{ photo.name }}</strong><span>{{ formatPhotoSize(photo.size) }} · Ready to replace</span> }</div>
-                  <div class="preview-actions"><button class="text-button" type="button" (click)="editPhotoInput.click()" [disabled]="isSubmitting()">Replace</button><button class="text-button danger" type="button" (click)="removeEditSelectedPhoto()" [disabled]="isSubmitting()">Keep current</button></div>
+                  <img class="preview-image" [src]="previewUrl" [alt]="i18n.t('students.selectedReplacementPhoto')" />
+                  <div class="preview-details">@if (editSelectedPhoto(); as photo) { <strong>{{ photo.name }}</strong><span>{{ i18n.t('students.photoReadyReplace', { size: formatPhotoSize(photo.size) }) }}</span> }</div>
+                  <div class="preview-actions"><button class="text-button" type="button" (click)="editPhotoInput.click()" [disabled]="isSubmitting()">{{ i18n.t('students.replace') }}</button><button class="text-button danger" type="button" (click)="removeEditSelectedPhoto()" [disabled]="isSubmitting()">{{ i18n.t('students.keepCurrent') }}</button></div>
                 </div>
               } @else {
                 @if (photoUrl(student.id); as currentPhotoUrl) {
                   <div class="photo-preview">
-                    <img class="preview-image" [src]="currentPhotoUrl" [alt]="'Current passport photo for ' + student.fullName" />
-                    <div class="preview-details"><strong>Current passport photo</strong><span>Choose a new file to replace it.</span></div>
-                    <div class="preview-actions"><button class="text-button" type="button" (click)="editPhotoInput.click()" [disabled]="isSubmitting()">Change</button></div>
+                    <img class="preview-image" [src]="currentPhotoUrl" [alt]="i18n.t('students.currentPhotoAria', { name: student.fullName })" />
+                    <div class="preview-details"><strong>{{ i18n.t('students.currentPhoto') }}</strong><span>{{ i18n.t('students.chooseNewPhoto') }}</span></div>
+                    <div class="preview-actions"><button class="text-button" type="button" (click)="editPhotoInput.click()" [disabled]="isSubmitting()">{{ i18n.t('students.change') }}</button></div>
                   </div>
                 }
                 <button class="photo-dropzone" [class.dragging]="editPhotoDropActive()" type="button" (click)="editPhotoInput.click()" (dragover)="onEditPhotoDragOver($event)" (dragleave)="onEditPhotoDragLeave($event)" (drop)="onEditPhotoDrop($event)" [disabled]="isSubmitting()">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
-                  <span><strong>{{ student.hasPhoto ? 'Drop a replacement photo here or browse' : 'Drop a photo here or browse' }}</strong>JPEG, PNG or WebP · up to 2 MB</span>
+                  <span><strong>{{ i18n.t(student.hasPhoto ? 'students.dropReplacementPhoto' : 'students.dropPhoto') }}</strong>{{ i18n.t('students.photoFormat') }}</span>
                 </button>
               }
               @if (editPhotoError(); as message) { <p class="photo-error" role="alert">{{ message }}</p> }
             </div>
-            @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+            @if (error(); as message) { <p class="form-error" role="alert">{{ feedbackMessage(message) }}</p> }
             <div class="field">
-              <label for="edit-studentNo">Student number</label>
+              <label for="edit-studentNo">{{ i18n.t('students.studentNumberLabel') }}</label>
               <input id="edit-studentNo" formControlName="studentNo" autocomplete="off" [class.invalid]="isEditInvalid('studentNo')" />
-              @if (isEditInvalid('studentNo')) { <p class="field-error">Use 2-64 letters, numbers, spaces or hyphens.</p> }
+              @if (isEditInvalid('studentNo')) { <p class="field-error">{{ i18n.t('students.studentNumberError') }}</p> }
             </div>
             <div class="field">
-              <label for="edit-fullName">Full name</label>
+              <label for="edit-fullName">{{ i18n.t('students.fullName') }}</label>
               <input id="edit-fullName" formControlName="fullName" autocomplete="name" [class.invalid]="isEditInvalid('fullName')" />
-              @if (isEditInvalid('fullName')) { <p class="field-error">Enter the learner's full name (2-256 characters).</p> }
+              @if (isEditInvalid('fullName')) { <p class="field-error">{{ i18n.t('students.fullNameError') }}</p> }
             </div>
             <div class="field">
-              <label for="edit-classLevel">Class level</label>
+              <label for="edit-classLevel">{{ i18n.t('students.classLevel') }}</label>
               <select id="edit-classLevel" formControlName="classLevel" [class.invalid]="isEditInvalid('classLevel')">
-                <option [ngValue]="0" disabled>Select a class level</option>
-                @for (level of classLevels; track level) { <option [ngValue]="level">Class {{ level }}</option> }
+                <option [ngValue]="0" disabled>{{ i18n.t('students.chooseClass') }}</option>
+                @for (level of classLevels; track level) { <option [ngValue]="level">{{ i18n.t('students.classLabel', { level: level }) }}</option> }
               </select>
-              @if (isEditInvalid('classLevel')) { <p class="field-error">Choose a class level from 1 to 12.</p> }
+              @if (isEditInvalid('classLevel')) { <p class="field-error">{{ i18n.t('students.classLevelError') }}</p> }
             </div>
             <div class="field">
-              <label for="edit-guardianPhone">Guardian phone</label>
+              <label for="edit-guardianPhone">{{ i18n.t('students.guardianPhoneLabel') }}</label>
               <input id="edit-guardianPhone" formControlName="guardianPhone" autocomplete="tel" inputmode="tel" [class.invalid]="isEditInvalid('guardianPhone')" />
-              @if (isEditInvalid('guardianPhone')) { <p class="field-error">Enter a valid guardian phone number.</p> }
+              @if (isEditInvalid('guardianPhone')) { <p class="field-error">{{ i18n.t('students.guardianPhoneError') }}</p> }
             </div>
             <div class="field">
-              <label for="edit-deviceUserId">Device identity <span class="optional">Optional</span></label>
+              <label for="edit-deviceUserId">{{ i18n.t('students.deviceIdentityLabel') }} <span class="optional">{{ i18n.t('students.optional') }}</span></label>
               <input id="edit-deviceUserId" formControlName="deviceUserId" autocomplete="off" [class.invalid]="isEditInvalid('deviceUserId')" />
-              <p class="help">Assign this only when the learner is already enrolled on an attendance device.</p>
-              @if (isEditInvalid('deviceUserId')) { <p class="field-error">Device identity must be 128 characters or fewer.</p> }
+              <p class="help">{{ i18n.t('students.deviceIdentityHelp') }}</p>
+              @if (isEditInvalid('deviceUserId')) { <p class="field-error">{{ i18n.t('students.deviceIdentityError') }}</p> }
             </div>
             <div class="form-actions">
-              <button class="secondary" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()">Cancel</button>
-              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Saving changes... } @else if (uploadingPhotoId()) { <span class="saving-dot"></span>Uploading photo... } @else if (editPhotoUploadStudentId() && editSelectedPhoto()) { Retry photo upload } @else { Save changes }</button>
+              <button class="secondary" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()">{{ i18n.t('students.cancel') }}</button>
+              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>{{ i18n.t('students.savingChanges') }} } @else if (uploadingPhotoId()) { <span class="saving-dot"></span>{{ i18n.t('students.uploadingPhoto') }} } @else if (editPhotoUploadStudentId() && editSelectedPhoto()) { {{ i18n.t('students.retryPhoto') }} } @else { {{ i18n.t('students.savingChanges') }} }</button>
             </div>
           </form>
         </section>
@@ -254,15 +254,15 @@ import {
       <div class="dialog-backdrop" (click)="closeDeactivateFromBackdrop($event)">
         <section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="deactivate-student-title" aria-describedby="deactivate-student-description">
           <header class="dialog-head">
-            <div><p class="eyebrow">Student status</p><h2 id="deactivate-student-title">Make student inactive?</h2><p id="deactivate-student-description">{{ student.fullName }} will be removed from the active directory.</p></div>
-            <button class="close" type="button" (click)="closeDeactivateDialog()" [disabled]="isSubmitting()" aria-label="Close inactive student confirmation">&times;</button>
+            <div><p class="eyebrow">{{ i18n.t('students.studentStatus') }}</p><h2 id="deactivate-student-title">{{ i18n.t('students.makeInactiveTitle') }}</h2><p id="deactivate-student-description">{{ i18n.t('students.makeInactiveDescription', { name: student.fullName }) }}</p></div>
+            <button class="close" type="button" (click)="closeDeactivateDialog()" [disabled]="isSubmitting()" [attr.aria-label]="i18n.t('students.closeInactive')">&times;</button>
           </header>
-          @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
-          <p class="description">This is not a permanent deletion. The student record, passport photo, and history remain stored as inactive.</p>
-          <p class="help"><strong>What changes:</strong> the learner will no longer appear in this active student list. You can keep their record for audit and historical reporting.</p>
+          @if (error(); as message) { <p class="form-error" role="alert">{{ feedbackMessage(message) }}</p> }
+          <p class="description">{{ i18n.t('students.notPermanentDeletion') }}</p>
+          <p class="help"><strong>{{ i18n.t('students.whatChanges') }}</strong> {{ i18n.t('students.inactiveImpact') }}</p>
           <div class="form-actions">
-            <button class="secondary" type="button" (click)="closeDeactivateDialog()" [disabled]="isSubmitting()">Cancel</button>
-            <button class="primary danger-primary" type="button" (click)="deactivateStudent()" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Making inactive… } @else { Make inactive }</button>
+            <button class="secondary" type="button" (click)="closeDeactivateDialog()" [disabled]="isSubmitting()">{{ i18n.t('students.cancel') }}</button>
+            <button class="primary danger-primary" type="button" (click)="deactivateStudent()" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>{{ i18n.t('students.makingInactive') }} } @else { {{ i18n.t('students.deactivate') }} }</button>
           </div>
         </section>
       </div>
@@ -272,15 +272,15 @@ import {
       <div class="dialog-backdrop" (click)="closeActivateFromBackdrop($event)">
         <section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="activate-student-title" aria-describedby="activate-student-description">
           <header class="dialog-head">
-            <div><p class="eyebrow">Student status</p><h2 id="activate-student-title">Reactivate student?</h2><p id="activate-student-description">{{ student.fullName }} will return to the active directory.</p></div>
-            <button class="close" type="button" (click)="closeActivateDialog()" [disabled]="isSubmitting()" aria-label="Close reactivate student confirmation">&times;</button>
+            <div><p class="eyebrow">{{ i18n.t('students.studentStatus') }}</p><h2 id="activate-student-title">{{ i18n.t('students.reactivateTitle') }}</h2><p id="activate-student-description">{{ i18n.t('students.reactivateDescription', { name: student.fullName }) }}</p></div>
+            <button class="close" type="button" (click)="closeActivateDialog()" [disabled]="isSubmitting()" [attr.aria-label]="i18n.t('students.closeReactivate')">&times;</button>
           </header>
-          @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
-          <p class="description">This restores the learner as active. Their existing device identity can record attendance again.</p>
-          <p class="help"><strong>What changes:</strong> the learner will be available in the active directory and receive new device attendance events.</p>
+          @if (error(); as message) { <p class="form-error" role="alert">{{ feedbackMessage(message) }}</p> }
+          <p class="description">{{ i18n.t('students.reactivateImpact') }}</p>
+          <p class="help"><strong>{{ i18n.t('students.whatChanges') }}</strong> {{ i18n.t('students.reactivateWhatChanges') }}</p>
           <div class="form-actions">
-            <button class="secondary" type="button" (click)="closeActivateDialog()" [disabled]="isSubmitting()">Cancel</button>
-            <button class="primary" type="button" (click)="activateStudent()" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Reactivating… } @else { Reactivate student }</button>
+            <button class="secondary" type="button" (click)="closeActivateDialog()" [disabled]="isSubmitting()">{{ i18n.t('students.cancel') }}</button>
+            <button class="primary" type="button" (click)="activateStudent()" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>{{ i18n.t('students.reactivating') }} } @else { {{ i18n.t('students.reactivate') }} }</button>
           </div>
         </section>
       </div>
@@ -288,6 +288,7 @@ import {
   `,
 })
 export class StudentsPageComponent implements OnInit, OnDestroy {
+  readonly i18n = inject(I18nService);
   private readonly store = inject(Store);
   private readonly actions$ = inject(Actions);
   private readonly destroyRef = inject(DestroyRef);
@@ -339,19 +340,24 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     const total = this.totalCount();
     const students = this.students();
     const matches = this.filteredStudents().length;
-    const status = this.isActiveDirectory() ? 'active' : 'inactive';
+    const status = this.i18n.t(this.isActiveDirectory() ? 'students.active' : 'students.inactive');
 
     if (!total || !students.length) {
-      return `Showing 0 of ${total} ${status} students`;
+      return this.i18n.t('students.showingNone', { total, status });
     }
 
     if (this.query().trim()) {
-      return `Showing ${matches} matching ${matches === 1 ? 'student' : 'students'} on this page of ${total} ${status}`;
+      return this.i18n.t('students.showingMatches', {
+        matches,
+        studentWord: this.i18n.t(matches === 1 ? 'students.singularStudent' : 'students.pluralStudents'),
+        total,
+        status,
+      });
     }
 
     const first = (this.currentPage() - 1) * this.pageSize() + 1;
     const last = Math.min(first + students.length - 1, total);
-    return `Showing ${first}–${last} of ${total} ${status} students`;
+    return this.i18n.t('students.showingRange', { first, last, total, status });
   });
   readonly studentForm = this.formBuilder.nonNullable.group({
     studentNo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(64), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9 -]*$/)]],
@@ -710,12 +716,12 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
 
     const files = event.dataTransfer?.files;
     if (!files?.length) {
-      this.photoError.set('Drop a JPEG, PNG or WebP image to select it.');
+      this.photoError.set(this.i18n.t('students.photoDropEmpty'));
       return;
     }
 
     if (files.length > 1) {
-      this.photoError.set('Select one student photo at a time.');
+      this.photoError.set(this.i18n.t('students.photoDropMultiple'));
       return;
     }
 
@@ -760,12 +766,12 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
 
     const files = event.dataTransfer?.files;
     if (!files?.length) {
-      this.editPhotoError.set('Drop a JPEG, PNG or WebP image to select it.');
+      this.editPhotoError.set(this.i18n.t('students.photoDropEmpty'));
       return;
     }
 
     if (files.length > 1) {
-      this.editPhotoError.set('Select one student photo at a time.');
+      this.editPhotoError.set(this.i18n.t('students.photoDropMultiple'));
       return;
     }
 
@@ -817,11 +823,41 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   }
 
   formatPhotoSize(bytes: number): string {
+    const formatter = new Intl.NumberFormat(this.i18n.language() === 'bn' ? 'bn-BD' : 'en-BD', {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+    });
     if (bytes < 1024 * 1024) {
-      return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+      return this.i18n.t('students.kilobytes', { value: formatter.format(Math.max(1, Math.round(bytes / 1024))) });
     }
 
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return this.i18n.t('students.megabytes', { value: formatter.format(bytes / (1024 * 1024)) });
+  }
+
+  displayDate(value: string | Date): string {
+    return new Intl.DateTimeFormat(this.i18n.language() === 'bn' ? 'bn-BD' : 'en-BD', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(value));
+  }
+
+  feedbackMessage(message: string): string {
+    if (this.i18n.language() === 'en') {
+      return message;
+    }
+
+    const added = /^(.+) was added to the student directory\.$/.exec(message);
+    if (added) return this.i18n.t('students.successAdded', { name: added[1] });
+    const updated = /^(.+) was updated\.$/.exec(message);
+    if (updated) return this.i18n.t('students.successUpdated', { name: updated[1] });
+    const deactivated = /^(.+) was made inactive\. Their record was not erased\.$/.exec(message);
+    if (deactivated) return this.i18n.t('students.successDeactivated', { name: deactivated[1] });
+    const reactivated = /^(.+) was reactivated and returned to the active directory\.$/.exec(message);
+    if (reactivated) return this.i18n.t('students.successReactivated', { name: reactivated[1] });
+    const photoSaved = /^The photo for (.+) was saved\.$/.exec(message);
+    if (photoSaved) return this.i18n.t('students.successPhoto', { name: photoSaved[1] });
+    return this.i18n.errorMessage(message, 'students.requestFailed');
   }
 
   ngOnDestroy(): void {
@@ -832,7 +868,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   }
 
   private selectPhoto(photo: File): void {
-    const message = photoValidationMessage(photo);
+    const message = this.photoValidationMessage(photo);
     if (message) {
       this.photoError.set(message);
       return;
@@ -856,7 +892,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   }
 
   private selectEditPhoto(photo: File): void {
-    const message = photoValidationMessage(photo);
+    const message = this.photoValidationMessage(photo);
     if (message) {
       this.editPhotoError.set(message);
       return;
@@ -878,6 +914,19 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     this.editPhotoError.set(null);
     this.editPhotoDropActive.set(false);
     this.editPhotoUploadStudentId.set(null);
+  }
+
+  private photoValidationMessage(photo: File): string | null {
+    const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!acceptedTypes.includes(photo.type.toLocaleLowerCase())) {
+      return this.i18n.t('students.photoInvalidType');
+    }
+
+    if (photo.size > 2 * 1024 * 1024) {
+      return this.i18n.t('students.photoTooLarge');
+    }
+
+    return null;
   }
 
   private completeStudentCreation(): void {
@@ -907,7 +956,6 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     this.clearSelectedPhoto();
   }
 }
-
 function filterStudents<T extends { studentNo: string; fullName: string; classLevel: number; guardianPhone: string; deviceUserId: string | null }>(students: T[], query: string): T[] {
   const term = query.trim().toLocaleLowerCase();
   if (!term) {
@@ -921,17 +969,4 @@ function filterStudents<T extends { studentNo: string; fullName: string; classLe
     student.guardianPhone,
     student.deviceUserId ?? '',
   ].some((value) => value.toLocaleLowerCase().includes(term)));
-}
-
-function photoValidationMessage(photo: File): string | null {
-  const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!acceptedTypes.includes(photo.type.toLocaleLowerCase())) {
-    return 'Choose a JPEG, PNG or WebP image.';
-  }
-
-  if (photo.size > 2 * 1024 * 1024) {
-    return 'Choose an image smaller than 2 MB.';
-  }
-
-  return null;
 }

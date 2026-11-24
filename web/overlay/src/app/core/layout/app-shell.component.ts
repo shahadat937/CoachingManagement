@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, forwardRef, inject, input, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthFacade } from '../auth/auth.facade';
+import { I18nService } from '../i18n/i18n.service';
 import { APP_NAVIGATION, hasRole, NavigationIcon } from '../navigation/navigation';
 
 @Component({
@@ -40,6 +41,9 @@ import { APP_NAVIGATION, hasRole, NavigationIcon } from '../navigation/navigatio
     .search svg { fill: none; height: 1rem; stroke: currentColor; stroke-width: 2; width: 1rem; }
     .search input { background: transparent; border: 0; color: #253753; font: inherit; font-size: .82rem; min-width: 0; outline: 0; width: 100%; }
     .topbar-right { align-items: center; display: flex; gap: .7rem; }
+    .language-switcher { align-items: center; background: #f3f5fa; border-radius: .65rem; display: inline-flex; gap: .12rem; padding: .18rem; }
+    .language-button { background: transparent; border: 0; border-radius: .48rem; color: #60708b; cursor: pointer; font: inherit; font-size: .68rem; font-weight: 800; min-width: 2rem; padding: .38rem .42rem; }
+    .language-button.active { background: #fff; box-shadow: 0 1px 4px rgba(32, 50, 80, .15); color: #5149ce; }
     .icon-button { align-items: center; background: #f3f5fa; border: 0; border-radius: .7rem; color: #52627d; cursor: pointer; display: inline-flex; height: 2.4rem; justify-content: center; position: relative; width: 2.4rem; }
     .notification { background: #ef5f6c; border: 2px solid #fff; border-radius: 50%; height: .55rem; position: absolute; right: .47rem; top: .42rem; width: .55rem; }
     .profile-wrap { position: relative; }
@@ -58,54 +62,58 @@ import { APP_NAVIGATION, hasRole, NavigationIcon } from '../navigation/navigatio
   `,
   template: `
     <div class="shell">
-      <button class="backdrop" [class.visible]="mobileOpen()" type="button" aria-label="Close navigation" (click)="closeMobile()"></button>
+      <button class="backdrop" [class.visible]="mobileOpen()" type="button" [attr.aria-label]="i18n.t('shell.closeNavigation')" (click)="closeMobile()"></button>
       <aside class="sidebar" [class.open]="mobileOpen()">
         <a class="brand" routerLink="/dashboard" (click)="closeMobile()">
           <span class="brand-mark">CH</span>
-          <span class="brand-copy"><strong>Coaching Hub</strong><small>Management portal</small></span>
+          <span class="brand-copy"><strong>{{ i18n.t('app.name') }}</strong><small>{{ i18n.t('app.portal') }}</small></span>
         </a>
-        <p class="nav-label">Workspace</p>
-        <nav aria-label="Main navigation">
+        <p class="nav-label">{{ i18n.t('shell.workspace') }}</p>
+        <nav [attr.aria-label]="i18n.t('shell.mainNavigation')">
           @for (item of navigation(); track item.path) {
             <a class="nav-link" [routerLink]="item.path" routerLinkActive="is-active" (click)="closeMobile()">
               <span class="nav-icon"><app-nav-icon [icon]="item.icon" /></span>
-              <strong>{{ item.label }}</strong>
-              @if (item.caption) { <small>{{ item.caption }}</small> }
+              <strong>{{ i18n.t(item.labelKey) }}</strong>
+              @if (item.captionKey) { <small>{{ i18n.t(item.captionKey) }}</small> }
             </a>
           }
         </nav>
         <div class="sidebar-foot">
-          <strong>{{ roleLabel() }} workspace</strong>
-          <span>Protected by role policies</span>
+          <strong>{{ i18n.t('shell.roleWorkspace', { role: roleLabel() }) }}</strong>
+          <span>{{ i18n.t('shell.protectedByRole') }}</span>
         </div>
       </aside>
 
       <main class="content">
         <header class="topbar">
           <div class="topbar-left">
-            <button class="menu-toggle" type="button" aria-label="Open navigation" (click)="toggleMobile()">
+            <button class="menu-toggle" type="button" [attr.aria-label]="i18n.t('shell.openNavigation')" (click)="toggleMobile()">
               <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
             </button>
-            <span class="today">{{ today }}</span>
+            <span class="today">{{ today() }}</span>
           </div>
-          <label class="search" aria-label="Search workspace">
+          <label class="search" [attr.aria-label]="i18n.t('shell.searchWorkspace')">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>
-            <input type="search" placeholder="Search students, classes…" />
+            <input type="search" [placeholder]="i18n.t('shell.searchPlaceholder')" />
           </label>
           <div class="topbar-right">
-            <button class="icon-button" type="button" aria-label="Notifications">
+            <div class="language-switcher" [attr.aria-label]="i18n.t('language.switcher')">
+              <button class="language-button" [class.active]="i18n.language() === 'en'" type="button" [attr.aria-pressed]="i18n.language() === 'en'" [attr.aria-label]="i18n.t('language.english')" (click)="i18n.setLanguage('en')">{{ i18n.t('language.englishShort') }}</button>
+              <button class="language-button" [class.active]="i18n.language() === 'bn'" type="button" [attr.aria-pressed]="i18n.language() === 'bn'" [attr.aria-label]="i18n.t('language.bangla')" (click)="i18n.setLanguage('bn')">{{ i18n.t('language.banglaShort') }}</button>
+            </div>
+            <button class="icon-button" type="button" [attr.aria-label]="i18n.t('shell.notifications')">
               <svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
               <span class="notification"></span>
             </button>
             <div class="profile-wrap">
-              <button class="profile-button" type="button" (click)="profileOpen.set(!profileOpen())" [attr.aria-expanded]="profileOpen()">
+              <button class="profile-button" type="button" [attr.aria-label]="i18n.t('shell.myProfile')" (click)="profileOpen.set(!profileOpen())" [attr.aria-expanded]="profileOpen()">
                 <span class="avatar">{{ initials() }}</span>
                 <span class="profile-copy"><strong>{{ userName() }}</strong><small>{{ roleLabel() }}</small></span>
               </button>
               @if (profileOpen()) {
                 <div class="profile-menu">
-                  <button type="button" (click)="profileOpen.set(false)">My profile</button>
-                  <button type="button" (click)="logout()">Sign out</button>
+                  <button type="button" (click)="profileOpen.set(false)">{{ i18n.t('shell.myProfile') }}</button>
+                  <button type="button" (click)="logout()">{{ i18n.t('shell.signOut') }}</button>
                 </div>
               }
             </div>
@@ -119,18 +127,18 @@ import { APP_NAVIGATION, hasRole, NavigationIcon } from '../navigation/navigatio
 export class AppShellComponent {
   private readonly auth = inject(AuthFacade);
   private readonly router = inject(Router);
+  readonly i18n = inject(I18nService);
 
   readonly mobileOpen = signal(false);
   readonly profileOpen = signal(false);
   readonly session = this.auth.session;
   readonly navigation = computed(() => APP_NAVIGATION.filter((item) =>
     hasRole(this.session()?.user.role, item.roles)));
-  readonly userName = computed(() => this.session()?.user.fullName || 'Coaching user');
-  readonly roleLabel = computed(() => this.session()?.user.role || 'Member');
+  readonly userName = computed(() => this.session()?.user.fullName || this.i18n.t('app.name'));
+  readonly roleLabel = computed(() => this.i18n.t(`roles.${this.session()?.user.role || 'Member'}`));
   readonly initials = computed(() => this.userName().split(' ').filter(Boolean).slice(0, 2)
     .map((part) => part[0]).join('').toUpperCase() || 'CH');
-  readonly today = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
-    .format(new Date());
+  readonly today = computed(() => this.i18n.formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' }));
 
   toggleMobile(): void { this.mobileOpen.update((open) => !open); }
   closeMobile(): void { this.mobileOpen.set(false); }

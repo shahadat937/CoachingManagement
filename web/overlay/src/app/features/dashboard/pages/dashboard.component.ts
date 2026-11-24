@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthFacade } from '../../../core/auth/auth.facade';
+import { I18nService } from '../../../core/i18n/i18n.service';
 import { APP_NAVIGATION, hasRole, ModuleCard } from '../../../core/navigation/navigation';
 
 interface ScheduleItem {
   time: string;
-  title: string;
-  detail: string;
-  state: 'Now' | 'Next' | 'Later';
+  titleKey: string;
+  detailKey: string;
+  stateKey: string;
   tone: 'indigo' | 'cyan' | 'orange';
 }
 
@@ -65,60 +66,60 @@ interface ScheduleItem {
   template: `
     <section class="hero">
       <div>
-        <p class="eyebrow">{{ role() }} command centre</p>
-        <h1>Good morning, {{ firstName() }}.</h1>
-        <p>Here is the clearest view of your coaching day: people, classes and the work that needs your attention.</p>
+        <p class="eyebrow">{{ i18n.t('dashboard.commandCentre', { role: roleLabel() }) }}</p>
+        <h1>{{ i18n.t('dashboard.greeting', { name: firstName() }) }}</h1>
+        <p>{{ i18n.t('dashboard.description') }}</p>
       </div>
-      <a class="primary-action" [routerLink]="primaryLink().path"><span>＋</span>{{ primaryLink().label }}</a>
+      <a class="primary-action" [routerLink]="primaryLink().path"><span>＋</span>{{ i18n.t(primaryLink().labelKey) }}</a>
     </section>
-    @if (accessRestricted) { <p class="restriction">This module is not available for your current role. Your workspace has been kept on the areas you can access.</p> }
+    @if (accessRestricted) { <p class="restriction">{{ i18n.t('dashboard.restriction') }}</p> }
 
-    <section class="metrics" aria-label="Today's overview">
-      @for (metric of metrics(); track metric.label) {
+    <section class="metrics" [attr.aria-label]="i18n.t('dashboard.overviewAria')">
+      @for (metric of metrics(); track metric.labelKey) {
         <article class="metric" [class]="metric.tone">
-          <span class="metric-label">{{ metric.label }}</span>
+          <span class="metric-label">{{ i18n.t(metric.labelKey) }}</span>
           <strong>{{ metric.value }}</strong>
-          <small><b>{{ metric.detail.split('·')[0] }}</b>{{ metric.detail.includes('·') ? ' · ' + metric.detail.split('·')[1] : '' }}</small>
+          <small>{{ i18n.t(metric.detailKey) }}</small>
         </article>
       }
     </section>
 
     <section class="grid">
       <article class="panel">
-        <div class="panel-head"><h2>Today’s class flow</h2><a class="text-link" routerLink="/attendance">Open attendance</a></div>
+        <div class="panel-head"><h2>{{ i18n.t('dashboard.classFlow') }}</h2><a class="text-link" routerLink="/attendance">{{ i18n.t('dashboard.openAttendance') }}</a></div>
         <div class="schedule">
-          @for (item of schedule; track item.time + item.title) {
+          @for (item of schedule; track item.time + item.titleKey) {
             <div class="schedule-row">
               <span class="time">{{ item.time }}</span>
-              <span><span class="class-title">{{ item.title }}</span><span class="class-detail">{{ item.detail }}</span></span>
-              <span class="pill" [class]="item.tone">{{ item.state }}</span>
+              <span><span class="class-title">{{ i18n.t(item.titleKey) }}</span><span class="class-detail">{{ i18n.t(item.detailKey) }}</span></span>
+              <span class="pill" [class]="item.tone">{{ i18n.t(item.stateKey) }}</span>
             </div>
           }
         </div>
       </article>
       <article class="panel">
-        <div class="panel-head"><h2>Needs attention</h2><span class="text-link">Today</span></div>
+        <div class="panel-head"><h2>{{ i18n.t('dashboard.needsAttention') }}</h2><span class="text-link">{{ i18n.t('common.today') }}</span></div>
         <div class="attention">
-          <div class="attention-item"><span class="attention-mark">14</span><span><strong>Attendance exceptions</strong><small>Late or missing check-ins waiting for a quick review.</small></span></div>
-          <div class="attention-item"><span class="attention-mark">6</span><span><strong>Upcoming deadlines</strong><small>Assessment plans and fee due dates are approaching.</small></span></div>
-          <div class="attention-item"><span class="attention-mark">3</span><span><strong>Team updates</strong><small>New activity from staff and campus devices.</small></span></div>
+          <div class="attention-item"><span class="attention-mark">14</span><span><strong>{{ i18n.t('dashboard.attendanceExceptions') }}</strong><small>{{ i18n.t('dashboard.attendanceExceptionsDetail') }}</small></span></div>
+          <div class="attention-item"><span class="attention-mark">6</span><span><strong>{{ i18n.t('dashboard.upcomingDeadlines') }}</strong><small>{{ i18n.t('dashboard.upcomingDeadlinesDetail') }}</small></span></div>
+          <div class="attention-item"><span class="attention-mark">3</span><span><strong>{{ i18n.t('dashboard.teamUpdates') }}</strong><small>{{ i18n.t('dashboard.teamUpdatesDetail') }}</small></span></div>
         </div>
       </article>
     </section>
 
     <section class="lower">
       <article class="panel">
-        <div class="panel-head"><h2>Quick workspace</h2><span class="text-link">Role-aware</span></div>
+        <div class="panel-head"><h2>{{ i18n.t('dashboard.quickWorkspace') }}</h2><span class="text-link">{{ i18n.t('dashboard.roleAware') }}</span></div>
         <div class="quick-grid">
           @for (item of quickLinks(); track item.path) {
-            <a class="quick-link" [routerLink]="item.path"><strong>{{ item.label }}</strong><span>{{ item.caption || 'Open workspace' }}</span></a>
+            <a class="quick-link" [routerLink]="item.path"><strong>{{ i18n.t(item.labelKey) }}</strong><span>{{ item.captionKey ? i18n.t(item.captionKey) : i18n.t('common.openWorkspace') }}</span></a>
           }
         </div>
       </article>
       <article class="panel moment">
-        <h2>Keep the day moving</h2>
-        <p>Your dashboard adapts to your role. Navigation and routes stay aligned with the API policies that protect each service.</p>
-        <span class="moment-tag">Secure role workspace</span>
+        <h2>{{ i18n.t('dashboard.keepMoving') }}</h2>
+        <p>{{ i18n.t('dashboard.keepMovingDetail') }}</p>
+        <span class="moment-tag">{{ i18n.t('dashboard.secureWorkspace') }}</span>
       </article>
     </section>
   `,
@@ -126,54 +127,65 @@ interface ScheduleItem {
 export class DashboardComponent {
   private readonly auth = inject(AuthFacade);
   private readonly route = inject(ActivatedRoute);
+  readonly i18n = inject(I18nService);
   readonly accessRestricted = this.route.snapshot.queryParamMap.get('notice') === 'access-restricted';
   readonly role = computed(() => this.auth.session()?.user.role || 'Member');
-  readonly firstName = computed(() => this.auth.session()?.user.fullName.split(' ')[0] || 'there');
+  readonly roleLabel = computed(() => this.i18n.t(`roles.${this.role()}`));
+  readonly firstName = computed(() => this.auth.session()?.user.fullName.split(' ')[0] || this.i18n.t('dashboard.greetingFallback'));
   readonly quickLinks = computed(() => APP_NAVIGATION
     .filter((item) => item.path !== '/dashboard' && hasRole(this.role(), item.roles))
     .slice(0, 4));
-  readonly primaryLink = computed(() => this.quickLinks()[0] || { path: '/dashboard', label: 'View dashboard' });
+  readonly primaryLink = computed(() => this.quickLinks()[0] || { path: '/dashboard', labelKey: 'dashboard.viewDashboard' });
   readonly metrics = computed<ModuleCard[]>(() => dashboardMetrics(this.role()));
   readonly schedule: ScheduleItem[] = [
-    { time: '09:00', title: 'General Mathematics', detail: 'Class 8 · Room 203', state: 'Now', tone: 'indigo' },
-    { time: '10:00', title: 'General Science', detail: 'Class 7 · Lab 2', state: 'Next', tone: 'cyan' },
-    { time: '11:15', title: 'English Language', detail: 'Class 8 · Room 105', state: 'Later', tone: 'orange' },
-    { time: '12:15', title: 'Bangla Literature', detail: 'Class 6 · Room 112', state: 'Later', tone: 'indigo' },
+    { time: '09:00', titleKey: 'dashboard.math', detailKey: 'dashboard.room203', stateKey: 'dashboard.now', tone: 'indigo' },
+    { time: '10:00', titleKey: 'dashboard.science', detailKey: 'dashboard.lab2', stateKey: 'dashboard.next', tone: 'cyan' },
+    { time: '11:15', titleKey: 'dashboard.english', detailKey: 'dashboard.room105', stateKey: 'dashboard.later', tone: 'orange' },
+    { time: '12:15', titleKey: 'dashboard.bangla', detailKey: 'dashboard.room112', stateKey: 'dashboard.later', tone: 'indigo' },
   ];
 }
 
 function dashboardMetrics(role: string): ModuleCard[] {
   if (role === 'Accountant') {
     return [
-      { label: 'Collected today', value: '৳ 42,600', detail: '+12% · 18 payments', tone: 'indigo' },
-      { label: 'Outstanding fees', value: '৳ 1.8L', detail: '114 · learner accounts', tone: 'orange' },
-      { label: 'Due this week', value: '৳ 3.2L', detail: '74 · invoices', tone: 'cyan' },
-      { label: 'Reconciled', value: '96%', detail: '+4% · this month', tone: 'violet' },
+      dashboardMetric('metric.collectedToday', '৳ 42,600', 'metric.collectedTodayDetail', 'indigo'),
+      dashboardMetric('metric.outstandingFees', '৳ 1.8L', 'metric.outstandingFeesDetail', 'orange'),
+      dashboardMetric('metric.dueThisWeek', '৳ 3.2L', 'metric.dueThisWeekDetail', 'cyan'),
+      dashboardMetric('metric.reconciled', '96%', 'metric.reconciledDetail', 'violet'),
     ];
   }
 
   if (role === 'Teacher') {
     return [
-      { label: 'Classes today', value: '4', detail: '1 · in progress', tone: 'indigo' },
-      { label: 'Learners today', value: '138', detail: '+6 · vs yesterday', tone: 'cyan' },
-      { label: 'Attendance', value: '93.4%', detail: '+1.8% · on track', tone: 'violet' },
-      { label: 'Marks to review', value: '24', detail: '3 · assessments', tone: 'orange' },
+      dashboardMetric('metric.classesToday', '4', 'metric.classesTodayDetail', 'indigo'),
+      dashboardMetric('metric.learnersToday', '138', 'metric.learnersTodayDetail', 'cyan'),
+      dashboardMetric('metric.attendance', '93.4%', 'metric.attendanceDetail', 'violet'),
+      dashboardMetric('metric.marksToReview', '24', 'metric.marksToReviewDetail', 'orange'),
     ];
   }
 
   if (role === 'Student' || role === 'Guardian') {
     return [
-      { label: 'Today’s classes', value: '3', detail: '1 · starting soon', tone: 'indigo' },
-      { label: 'Attendance', value: '96%', detail: '+2% · this month', tone: 'cyan' },
-      { label: 'Upcoming assessments', value: '2', detail: 'Next · 28 Nov', tone: 'violet' },
-      { label: 'Messages', value: '1', detail: 'New · from coaching', tone: 'orange' },
+      dashboardMetric('metric.todaysClasses', '3', 'metric.todaysClassesDetail', 'indigo'),
+      dashboardMetric('metric.attendance', '96%', 'metric.studentAttendanceDetail', 'cyan'),
+      dashboardMetric('metric.upcomingAssessments', '2', 'metric.upcomingAssessmentsDetail', 'violet'),
+      dashboardMetric('metric.messages', '1', 'metric.messagesDetail', 'orange'),
     ];
   }
 
   return [
-    { label: 'Active learners', value: '1,248', detail: '+36 · this month', tone: 'indigo' },
-    { label: 'Attendance today', value: '93.4%', detail: '+1.8% · on track', tone: 'cyan' },
-    { label: 'Collections', value: '৳ 8.4L', detail: '82% · monthly target', tone: 'violet' },
-    { label: 'Open actions', value: '23', detail: '14 · attendance reviews', tone: 'orange' },
+    dashboardMetric('metric.activeLearners', '1,248', 'metric.activeLearnersDetail', 'indigo'),
+    dashboardMetric('metric.attendanceToday', '93.4%', 'metric.attendanceTodayDetail', 'cyan'),
+    dashboardMetric('metric.collections', '৳ 8.4L', 'metric.collectionsDetail', 'violet'),
+    dashboardMetric('metric.openActions', '23', 'metric.openActionsDetail', 'orange'),
   ];
+}
+
+function dashboardMetric(
+  labelKey: string,
+  value: string,
+  detailKey: string,
+  tone: ModuleCard['tone'],
+): ModuleCard {
+  return { labelKey, value, detailKey, tone };
 }

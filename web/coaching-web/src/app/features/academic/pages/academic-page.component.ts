@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
+import { I18nService } from '../../../core/i18n/i18n.service';
 import { AcademicApi } from '../data/academic.api';
 import {
   AcademicBatch,
@@ -36,62 +37,62 @@ import {
   template: `
     <section class="page-head">
       <div>
-        <p class="eyebrow">Curriculum workspace</p>
-        <h1>Academic setup</h1>
-        <p class="description">Configure subjects by class, then create as many teaching batches as each class needs.</p>
+        <p class="eyebrow">{{ i18n.t('academic.eyebrow') }}</p>
+        <h1>{{ i18n.t('academic.title') }}</h1>
+        <p class="description">{{ i18n.t('academic.description') }}</p>
       </div>
-      <div class="class-caption">Class {{ selectedClassLevel() }} selected</div>
+      <div class="class-caption">{{ i18n.t('academic.classSelected', { classLevel: selectedClassLevel() }) }}</div>
     </section>
 
-    @if (success(); as message) { <div class="notice success" role="status"><span>{{ message }}</span><button type="button" (click)="clearFeedback()" aria-label="Dismiss confirmation">Close</button></div> }
-    @if (error(); as message) { <div class="notice error" role="alert"><span>{{ message }}</span><button type="button" (click)="clearFeedback()" aria-label="Dismiss error">Close</button></div> }
+    @if (success(); as message) { <div class="notice success" role="status"><span>{{ message }}</span><button type="button" (click)="clearFeedback()" [attr.aria-label]="i18n.t('academic.dismissSuccess')">{{ i18n.t('academic.close') }}</button></div> }
+    @if (error(); as message) { <div class="notice error" role="alert"><span>{{ message }}</span><button type="button" (click)="clearFeedback()" [attr.aria-label]="i18n.t('academic.dismissError')">{{ i18n.t('academic.close') }}</button></div> }
 
     <section class="class-picker" aria-labelledby="class-picker-title">
       <div class="class-picker-head">
-        <div><h2 id="class-picker-title">Choose a class</h2><p>Subjects are shared by all batches within the selected class.</p></div>
-        @if (loading()) { <span class="loading"><i></i>Refreshing setup</span> }
+        <div><h2 id="class-picker-title">{{ i18n.t('academic.chooseClass') }}</h2><p>{{ i18n.t('academic.classPickerDescription') }}</p></div>
+        @if (loading()) { <span class="loading"><i></i>{{ i18n.t('academic.refreshingSetup') }}</span> }
       </div>
-      <div class="class-grid" role="list" aria-label="Class levels">
+      <div class="class-grid" role="list" [attr.aria-label]="i18n.t('academic.classLevels')">
         @for (level of classLevels; track level) {
           <button class="class-choice" [class.selected]="selectedClassLevel() === level" type="button" (click)="selectClass(level)" [attr.aria-pressed]="selectedClassLevel() === level">
-            <strong>Class {{ level }}</strong><small>{{ classSummaryFor(level).subjectCount }} subjects / {{ classSummaryFor(level).batchCount }} batches</small>
+            <strong>{{ classLabel(level) }}</strong><small>{{ classSummaryLabel(level) }}</small>
           </button>
         }
       </div>
     </section>
 
-    <section class="summary" aria-label="Selected class summary">
-      <article class="metric indigo"><span>Selected class</span><strong>Class {{ selectedClassLevel() }}</strong><small>Matches the student class level</small></article>
-      <article class="metric cyan"><span>Class subjects</span><strong>{{ currentSummary().subjectCount }}</strong><small>Available to every batch</small></article>
-      <article class="metric violet"><span>Teaching batches</span><strong>{{ currentSummary().batchCount }}</strong><small>Morning, evening or custom groups</small></article>
+    <section class="summary" [attr.aria-label]="i18n.t('academic.selectedClassSummary')">
+      <article class="metric indigo"><span>{{ i18n.t('academic.selectedClass') }}</span><strong>{{ classLabel(selectedClassLevel()) }}</strong><small>{{ i18n.t('academic.matchesStudentClass') }}</small></article>
+      <article class="metric cyan"><span>{{ i18n.t('academic.classSubjects') }}</span><strong>{{ currentSummary().subjectCount }}</strong><small>{{ i18n.t('academic.availableToEveryBatch') }}</small></article>
+      <article class="metric violet"><span>{{ i18n.t('academic.teachingBatches') }}</span><strong>{{ currentSummary().batchCount }}</strong><small>{{ i18n.t('academic.groupsDescription') }}</small></article>
     </section>
 
     <section class="routine-panel" aria-labelledby="routine-title">
       <header class="routine-head">
         <div>
-          <p class="eyebrow">Weekly timetable</p>
-          <h2 id="routine-title">Batch routine</h2>
-          <p class="description">Choose a batch to see its recurring weekly subjects, times, and rooms. Routine entries are visual setup data and do not create attendance sessions automatically.</p>
+          <p class="eyebrow">{{ i18n.t('academic.weeklyTimetable') }}</p>
+          <h2 id="routine-title">{{ i18n.t('academic.batchRoutine') }}</h2>
+          <p class="description">{{ i18n.t('academic.routineDescription') }}</p>
         </div>
         @if (selectedRoutineBatch(); as batch) { <span class="tag">{{ batch.name }}</span> }
       </header>
 
       @if (!batches().length) {
-        <p class="empty">Add and save a batch for Class {{ selectedClassLevel() }} before setting its routine.</p>
+        <p class="empty">{{ i18n.t('academic.addBatchBeforeRoutine', { classLabel: classLabel(selectedClassLevel()) }) }}</p>
       } @else {
-        <div class="batch-tabs" aria-label="Choose a batch routine">
+        <div class="batch-tabs" [attr.aria-label]="i18n.t('academic.chooseRoutine')">
           @for (batch of batches(); track batch.id) {
             <button class="batch-tab" [class.selected]="selectedRoutineBatchId() === batch.id" type="button" (click)="selectRoutineBatch(batch.id)" [attr.aria-pressed]="selectedRoutineBatchId() === batch.id">{{ batch.name }}</button>
           }
         </div>
 
-        @if (routineLoading()) { <p class="empty"><span class="loading"><i></i>Loading {{ selectedRoutineBatch()?.name || 'batch' }} routine</span></p> }
+        @if (routineLoading()) { <p class="empty"><span class="loading"><i></i>{{ loadingRoutineLabel() }}</span></p> }
 
         <div class="routine-board-wrap" [attr.aria-busy]="routineLoading()">
-          <div class="routine-board" aria-label="Weekly batch timetable">
+          <div class="routine-board" [attr.aria-label]="i18n.t('academic.weeklyBatchTimetable')">
             @for (day of routineDays; track day.value) {
               <article class="routine-day">
-                <header class="routine-day-head"><span>{{ day.label }}</span><small>{{ slotsForDay(day.value).length }} lesson{{ slotsForDay(day.value).length === 1 ? '' : 's' }}</small></header>
+                <header class="routine-day-head"><span>{{ routineDayLabel(day.value) }}</span><small>{{ lessonLabel(slotsForDay(day.value).length) }}</small></header>
                 @if (slotsForDay(day.value).length) {
                   <div class="routine-slots">
                     @for (slot of slotsForDay(day.value); track slot.id) {
@@ -99,14 +100,14 @@ import {
                         <span class="routine-time">{{ formatRoutineTime(slot.startTime) }} - {{ formatRoutineTime(slot.endTime) }}</span>
                         <strong class="record-title">{{ slot.subjectName }}</strong>
                         <span class="record-code">{{ slot.subjectCode }} / {{ slot.roomCode }}</span>
-                        @if (slot.teacherName) { <span class="record-code">Teacher: {{ slot.teacherName }}</span> }
+                        @if (slot.teacherName) { <span class="record-code">{{ i18n.t('academic.teacher') }}: {{ slot.teacherName }}</span> }
                         @if (canManage()) {
-                          <div class="entry-actions"><button class="link-button" type="button" (click)="editRoutine(slot)" [disabled]="routineSaving()">Edit</button><button class="link-button danger" type="button" (click)="deleteRoutine(slot)" [disabled]="routineSaving()">Remove</button></div>
+                          <div class="entry-actions"><button class="link-button" type="button" (click)="editRoutine(slot)" [disabled]="routineSaving()">{{ i18n.t('academic.edit') }}</button><button class="link-button danger" type="button" (click)="deleteRoutine(slot)" [disabled]="routineSaving()">{{ i18n.t('academic.remove') }}</button></div>
                         }
                       </article>
                     }
                   </div>
-                } @else { <p class="empty">No class scheduled</p> }
+                } @else { <p class="empty">{{ i18n.t('academic.noClassScheduled') }}</p> }
               </article>
             }
           </div>
@@ -114,107 +115,106 @@ import {
 
         @if (canManage()) {
           @if (!subjects().length) {
-            <p class="routine-read-only">Add and save at least one subject for Class {{ selectedClassLevel() }} before creating a routine slot.</p>
+            <p class="routine-read-only">{{ i18n.t('academic.addSubjectBeforeRoutine', { classLabel: classLabel(selectedClassLevel()) }) }}</p>
           } @else {
             <form class="entry" [formGroup]="routineForm" (ngSubmit)="saveRoutine()" novalidate>
-              <h3>{{ editingRoutineId() ? 'Edit routine lesson' : 'Add a routine lesson' }}</h3>
+              <h3>{{ editingRoutineId() ? i18n.t('academic.editRoutineLesson') : i18n.t('academic.addRoutineLesson') }}</h3>
               <div class="routine-fields">
-                <div class="field"><label for="routine-subject">Subject</label><select id="routine-subject" formControlName="subjectId" [class.invalid]="routineInvalid('subjectId')"><option value="">Choose subject</option>@for (subject of subjects(); track subject.id) { <option [value]="subject.id">{{ subject.name }} ({{ subject.code }})</option> }</select>@if (routineInvalid('subjectId')) { <small class="field-error">Choose a subject.</small> }</div>
-                <div class="field"><label for="routine-day">Day</label><select id="routine-day" formControlName="dayOfWeek" [class.invalid]="routineInvalid('dayOfWeek')">@for (day of routineDays; track day.value) { <option [ngValue]="day.value">{{ day.label }}</option> }</select></div>
-                <div class="field"><label for="routine-start">Start</label><input id="routine-start" type="time" formControlName="startTime" [class.invalid]="routineInvalid('startTime')" />@if (routineInvalid('startTime')) { <small class="field-error">Enter a start time.</small> }</div>
-                <div class="field"><label for="routine-end">End</label><input id="routine-end" type="time" formControlName="endTime" [class.invalid]="routineInvalid('endTime')" />@if (routineInvalid('endTime')) { <small class="field-error">Enter a later end time.</small> }</div>
-                <div class="field"><label for="routine-room">Room</label><input id="routine-room" formControlName="roomCode" maxlength="60" placeholder="e.g. R-201" [class.invalid]="routineInvalid('roomCode')" />@if (routineInvalid('roomCode')) { <small class="field-error">Enter a room.</small> }</div>
-                <div class="field"><label for="routine-teacher">Teacher <span>(optional)</span></label><input id="routine-teacher" formControlName="teacherName" maxlength="100" placeholder="e.g. Ayesha Rahman" [class.invalid]="routineInvalid('teacherName')" />@if (routineInvalid('teacherName')) { <small class="field-error">Teacher name must be 100 characters or fewer.</small> }</div>
+                <div class="field"><label for="routine-subject">{{ i18n.t('academic.subject') }}</label><select id="routine-subject" formControlName="subjectId" [class.invalid]="routineInvalid('subjectId')"><option value="">{{ i18n.t('academic.chooseSubject') }}</option>@for (subject of subjects(); track subject.id) { <option [value]="subject.id">{{ subject.name }} ({{ subject.code }})</option> }</select>@if (routineInvalid('subjectId')) { <small class="field-error">{{ i18n.t('academic.subjectRequired') }}</small> }</div>
+                <div class="field"><label for="routine-day">{{ i18n.t('academic.day') }}</label><select id="routine-day" formControlName="dayOfWeek" [class.invalid]="routineInvalid('dayOfWeek')">@for (day of routineDays; track day.value) { <option [ngValue]="day.value">{{ routineDayLabel(day.value) }}</option> }</select></div>
+                <div class="field"><label for="routine-start">{{ i18n.t('academic.start') }}</label><input id="routine-start" type="time" formControlName="startTime" [class.invalid]="routineInvalid('startTime')" />@if (routineInvalid('startTime')) { <small class="field-error">{{ i18n.t('academic.startRequired') }}</small> }</div>
+                <div class="field"><label for="routine-end">{{ i18n.t('academic.end') }}</label><input id="routine-end" type="time" formControlName="endTime" [class.invalid]="routineInvalid('endTime')" />@if (routineInvalid('endTime')) { <small class="field-error">{{ i18n.t('academic.endRequired') }}</small> }</div>
+                <div class="field"><label for="routine-room">{{ i18n.t('academic.room') }}</label><input id="routine-room" formControlName="roomCode" maxlength="60" [placeholder]="i18n.t('academic.roomPlaceholder')" [class.invalid]="routineInvalid('roomCode')" />@if (routineInvalid('roomCode')) { <small class="field-error">{{ i18n.t('academic.roomRequired') }}</small> }</div>
+                <div class="field"><label for="routine-teacher">{{ i18n.t('academic.teacher') }} <span>{{ i18n.t('academic.optional') }}</span></label><input id="routine-teacher" formControlName="teacherName" maxlength="100" [placeholder]="i18n.t('academic.teacherPlaceholder')" [class.invalid]="routineInvalid('teacherName')" />@if (routineInvalid('teacherName')) { <small class="field-error">{{ i18n.t('academic.teacherLength') }}</small> }</div>
               </div>
-              <div class="entry-actions"><span class="hint">Times that overlap another lesson for this batch will be rejected.</span>@if (editingRoutineId() || routineForm.dirty) { <button class="secondary" type="button" (click)="cancelRoutineEdit()" [disabled]="routineSaving()">{{ editingRoutineId() ? 'Cancel' : 'Clear' }}</button> }<button class="primary" type="submit" [disabled]="routineSaving()">{{ routineSaving() ? 'Saving...' : editingRoutineId() ? 'Update lesson' : 'Add lesson' }}</button></div>
+              <div class="entry-actions"><span class="hint">{{ i18n.t('academic.overlapWarning') }}</span>@if (editingRoutineId() || routineForm.dirty) { <button class="secondary" type="button" (click)="cancelRoutineEdit()" [disabled]="routineSaving()">{{ editingRoutineId() ? i18n.t('academic.cancel') : i18n.t('academic.clear') }}</button> }<button class="primary" type="submit" [disabled]="routineSaving()">{{ routineSaving() ? i18n.t('academic.saving') : editingRoutineId() ? i18n.t('academic.updateLesson') : i18n.t('academic.addLesson') }}</button></div>
             </form>
           }
-        } @else { <p class="routine-read-only">You can view the weekly routine. An administrator can add, edit, or remove routine lessons.</p> }
+        } @else { <p class="routine-read-only">{{ i18n.t('academic.routineReadOnly') }}</p> }
       }
     </section>
 
     <section class="setup-grid">
       <article class="panel" aria-labelledby="subjects-title">
-        <header class="panel-head"><div><h2 id="subjects-title">Class {{ selectedClassLevel() }} subjects</h2><p>Subjects belong to the class, not to an individual batch.</p></div><span class="count">{{ subjects().length }} saved</span></header>
+        <header class="panel-head"><div><h2 id="subjects-title">{{ i18n.t('academic.subjectsTitle', { classLabel: classLabel(selectedClassLevel()) }) }}</h2><p>{{ i18n.t('academic.subjectsDescription') }}</p></div><span class="count">{{ i18n.t('academic.savedCount', { count: subjects().length }) }}</span></header>
         @if (subjects().length) {
           <ul class="records">
-            @for (subject of subjects(); track subject.id) { <li class="record"><span><strong class="record-title">{{ subject.name }}</strong><small class="record-code">{{ subject.code }}</small></span><span class="tag">Class {{ subject.classLevel }}</span></li> }
+            @for (subject of subjects(); track subject.id) { <li class="record"><span><strong class="record-title">{{ subject.name }}</strong><small class="record-code">{{ subject.code }}</small></span><span class="tag">{{ classLabel(subject.classLevel) }}</span></li> }
           </ul>
-        } @else { <p class="empty">No subjects have been added for this class yet.</p> }
+        } @else { <p class="empty">{{ i18n.t('academic.noSubjects') }}</p> }
         @if (pendingSubjects().length) {
-          <ul class="drafts" aria-label="Queued subjects">
-            <li class="draft-label">Queued for one-click save ({{ pendingSubjects().length }})</li>
+          <ul class="drafts" [attr.aria-label]="i18n.t('academic.queuedSubjects')">
+            <li class="draft-label">{{ i18n.t('academic.queuedForSave', { count: pendingSubjects().length }) }}</li>
             @for (subject of pendingSubjects(); track subject.code; let index = $index) {
-              <li class="draft"><span><strong class="record-title">{{ subject.name }}</strong><small class="record-code">{{ subject.code }}</small></span><span><span class="queued-tag">Not saved</span> <button class="remove" type="button" (click)="removeQueuedSubject(index)" [disabled]="saving()">Remove</button></span></li>
+              <li class="draft"><span><strong class="record-title">{{ subject.name }}</strong><small class="record-code">{{ subject.code }}</small></span><span><span class="queued-tag">{{ i18n.t('academic.notSaved') }}</span> <button class="remove" type="button" (click)="removeQueuedSubject(index)" [disabled]="saving()">{{ i18n.t('academic.remove') }}</button></span></li>
             }
           </ul>
         }
         @if (canManage()) {
           <form class="entry" [formGroup]="subjectForm" (ngSubmit)="queueSubject()" novalidate>
-            <h3>Add a subject to the save list</h3>
+            <h3>{{ i18n.t('academic.addSubjectToList') }}</h3>
             <div class="field-grid">
-              <div class="field"><label for="subject-name">Subject name</label><input id="subject-name" formControlName="name" maxlength="120" placeholder="e.g. General Mathematics" [class.invalid]="subjectInvalid('name')" />@if (subjectInvalid('name')) { <small class="field-error">Enter a subject name.</small> }</div>
-              <div class="field"><label for="subject-code">Code</label><input id="subject-code" formControlName="code" maxlength="32" placeholder="MATH-08" [class.invalid]="subjectInvalid('code')" />@if (subjectInvalid('code')) { <small class="field-error">Use letters, numbers, hyphens, or underscores only.</small> }</div>
+              <div class="field"><label for="subject-name">{{ i18n.t('academic.subjectName') }}</label><input id="subject-name" formControlName="name" maxlength="120" [placeholder]="i18n.t('academic.subjectPlaceholder')" [class.invalid]="subjectInvalid('name')" />@if (subjectInvalid('name')) { <small class="field-error">{{ i18n.t('academic.subjectNameRequired') }}</small> }</div>
+              <div class="field"><label for="subject-code">{{ i18n.t('academic.code') }}</label><input id="subject-code" formControlName="code" maxlength="32" placeholder="MATH-08" [class.invalid]="subjectInvalid('code')" />@if (subjectInvalid('code')) { <small class="field-error">{{ i18n.t('academic.codeSyntax') }}</small> }</div>
             </div>
-            <div class="entry-actions"><span class="hint">Queue all subjects, then save them once.</span><button class="primary" type="submit" [disabled]="saving()">Add to list</button></div>
+            <div class="entry-actions"><span class="hint">{{ i18n.t('academic.queueSubjectsHint') }}</span><button class="primary" type="submit" [disabled]="saving()">{{ i18n.t('academic.addToList') }}</button></div>
           </form>
-        } @else { <p class="read-only">You can view subjects. An administrator can add or change academic setup.</p> }
+        } @else { <p class="read-only">{{ i18n.t('academic.subjectsReadOnly') }}</p> }
       </article>
 
       <article class="panel" aria-labelledby="batches-title">
-        <header class="panel-head"><div><h2 id="batches-title">Class {{ selectedClassLevel() }} batches</h2><p>Use batches to organise multiple groups for the same class.</p></div><span class="count">{{ batches().length }} saved</span></header>
+        <header class="panel-head"><div><h2 id="batches-title">{{ i18n.t('academic.batchesTitle', { classLabel: classLabel(selectedClassLevel()) }) }}</h2><p>{{ i18n.t('academic.batchesDescription') }}</p></div><span class="count">{{ i18n.t('academic.savedCount', { count: batches().length }) }}</span></header>
         @if (batches().length) {
           <ul class="records">
-            @for (batch of batches(); track batch.id) { <li class="record"><span><strong class="record-title">{{ batch.name }}</strong><small class="record-code">{{ batch.code || 'No batch code' }}</small></span><span class="tag">Class {{ batch.classLevel }}</span></li> }
+            @for (batch of batches(); track batch.id) { <li class="record"><span><strong class="record-title">{{ batch.name }}</strong><small class="record-code">{{ batch.code || i18n.t('academic.noBatchCode') }}</small></span><span class="tag">{{ classLabel(batch.classLevel) }}</span></li> }
           </ul>
-        } @else { <p class="empty">No batches have been added for this class yet.</p> }
+        } @else { <p class="empty">{{ i18n.t('academic.noBatches') }}</p> }
         @if (pendingBatches().length) {
-          <ul class="drafts" aria-label="Queued batches">
-            <li class="draft-label">Queued for one-click save ({{ pendingBatches().length }})</li>
+          <ul class="drafts" [attr.aria-label]="i18n.t('academic.queuedBatches')">
+            <li class="draft-label">{{ i18n.t('academic.queuedForSave', { count: pendingBatches().length }) }}</li>
             @for (batch of pendingBatches(); track batch.name; let index = $index) {
-              <li class="draft"><span><strong class="record-title">{{ batch.name }}</strong><small class="record-code">{{ batch.code || 'No batch code' }}</small></span><span><span class="queued-tag">Not saved</span> <button class="remove" type="button" (click)="removeQueuedBatch(index)" [disabled]="saving()">Remove</button></span></li>
+              <li class="draft"><span><strong class="record-title">{{ batch.name }}</strong><small class="record-code">{{ batch.code || i18n.t('academic.noBatchCode') }}</small></span><span><span class="queued-tag">{{ i18n.t('academic.notSaved') }}</span> <button class="remove" type="button" (click)="removeQueuedBatch(index)" [disabled]="saving()">{{ i18n.t('academic.remove') }}</button></span></li>
             }
           </ul>
         }
         @if (canManage()) {
           <form class="entry" [formGroup]="batchForm" (ngSubmit)="queueBatch()" novalidate>
-            <h3>Add a batch to the save list</h3>
+            <h3>{{ i18n.t('academic.addBatchToList') }}</h3>
             <div class="field-grid">
-              <div class="field"><label for="batch-name">Batch name</label><input id="batch-name" formControlName="name" maxlength="100" placeholder="e.g. Morning batch" [class.invalid]="batchInvalid('name')" />@if (batchInvalid('name')) { <small class="field-error">Enter a batch name.</small> }</div>
-              <div class="field"><label for="batch-code">Code <span>(optional)</span></label><input id="batch-code" formControlName="code" maxlength="32" placeholder="MOR-08" [class.invalid]="batchInvalid('code')" />@if (batchInvalid('code')) { <small class="field-error">Use letters, numbers, hyphens, or underscores only.</small> }</div>
+              <div class="field"><label for="batch-name">{{ i18n.t('academic.batchName') }}</label><input id="batch-name" formControlName="name" maxlength="100" [placeholder]="i18n.t('academic.batchPlaceholder')" [class.invalid]="batchInvalid('name')" />@if (batchInvalid('name')) { <small class="field-error">{{ i18n.t('academic.batchNameRequired') }}</small> }</div>
+              <div class="field"><label for="batch-code">{{ i18n.t('academic.batchCode') }} <span>{{ i18n.t('academic.optional') }}</span></label><input id="batch-code" formControlName="code" maxlength="32" placeholder="MOR-08" [class.invalid]="batchInvalid('code')" />@if (batchInvalid('code')) { <small class="field-error">{{ i18n.t('academic.codeSyntax') }}</small> }</div>
             </div>
-            <div class="entry-actions"><span class="hint">Several batches can belong to Class {{ selectedClassLevel() }}.</span><button class="primary" type="submit" [disabled]="saving()">Add to list</button></div>
+            <div class="entry-actions"><span class="hint">{{ i18n.t('academic.batchesHint', { classLabel: classLabel(selectedClassLevel()) }) }}</span><button class="primary" type="submit" [disabled]="saving()">{{ i18n.t('academic.addToList') }}</button></div>
           </form>
-        } @else { <p class="read-only">You can view batches. An administrator can add or change academic setup.</p> }
+        } @else { <p class="read-only">{{ i18n.t('academic.batchesReadOnly') }}</p> }
       </article>
     </section>
 
     @if (canManage() && pendingItemCount()) {
       <section class="save-all" aria-live="polite">
-        <div><strong>{{ pendingItemCount() }} item{{ pendingItemCount() === 1 ? '' : 's' }} ready to save</strong><p>{{ pendingSubjects().length }} subject{{ pendingSubjects().length === 1 ? '' : 's' }} and {{ pendingBatches().length }} batch{{ pendingBatches().length === 1 ? '' : 'es' }} will be added to Class {{ selectedClassLevel() }}.</p></div>
-        <button class="primary" type="button" (click)="saveAll()" [disabled]="saving()">{{ saving() ? 'Saving all...' : 'Save all' }}</button>
+        <div><strong>{{ itemsReadyLabel() }}</strong><p>{{ itemsWillBeAddedLabel() }}</p></div>
+        <button class="primary" type="button" (click)="saveAll()" [disabled]="saving()">{{ saving() ? i18n.t('academic.savingAll') : i18n.t('academic.saveAll') }}</button>
       </section>
     }
-
-
   `,
 })
 export class AcademicPageComponent implements OnInit {
   private readonly api = inject(AcademicApi);
   private readonly auth = inject(AuthFacade);
   private readonly formBuilder = inject(FormBuilder);
+  readonly i18n = inject(I18nService);
   private loadVersion = 0;
   private routineLoadVersion = 0;
 
   readonly classLevels = Array.from({ length: 12 }, (_, index) => index + 1);
   readonly routineDays = [
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' },
-    { value: 7, label: 'Sunday' },
+    { value: 1 },
+    { value: 2 },
+    { value: 3 },
+    { value: 4 },
+    { value: 5 },
+    { value: 6 },
+    { value: 7 },
   ] as const;
   readonly selectedClassLevel = signal(1);
   readonly classSummaries = signal<AcademicClassSummary[]>(this.classLevels.map((classLevel) => ({ classLevel, subjectCount: 0, batchCount: 0 })));
@@ -264,13 +264,18 @@ export class AcademicPageComponent implements OnInit {
 
     if (this.pendingItemCount()) {
       this.clearFeedback();
-      this.error.set(`Save or remove the ${this.pendingItemCount()} queued item${this.pendingItemCount() === 1 ? '' : 's'} before changing classes.`);
+      const count = this.pendingItemCount();
+      const items = this.i18n.t(
+        count === 1 ? 'academic.error.queuedItemOne' : 'academic.error.queuedItemOther',
+        { count },
+      );
+      this.error.set(this.i18n.t('academic.error.saveOrRemoveQueued', { items }));
       return;
     }
 
     if (this.editingRoutineId() || this.routineForm.dirty) {
       this.clearFeedback();
-      this.error.set('Save or cancel the routine lesson before changing classes.');
+      this.error.set(this.i18n.t('academic.error.saveOrCancelBeforeClass'));
       return;
     }
 
@@ -326,7 +331,7 @@ export class AcademicPageComponent implements OnInit {
         }
 
         this.loading.set(false);
-        this.error.set(readApiError(error, 'Unable to load academic setup. Check the Academic service and try again.'));
+        this.error.set(this.apiError(error, 'academic.error.unableLoadSetup'));
       },
     });
   }
@@ -349,7 +354,7 @@ export class AcademicPageComponent implements OnInit {
 
     if (this.subjectAlreadyExists(subject)) {
       this.clearFeedback();
-      this.error.set('This subject name or code is already saved or queued for the selected class.');
+      this.error.set(this.i18n.t('academic.error.duplicateSubject'));
       return;
     }
 
@@ -376,7 +381,7 @@ export class AcademicPageComponent implements OnInit {
 
     if (this.batchAlreadyExists(batch)) {
       this.clearFeedback();
-      this.error.set('This batch name or code is already saved or queued for the selected class.');
+      this.error.set(this.i18n.t('academic.error.duplicateBatch'));
       return;
     }
 
@@ -413,12 +418,15 @@ export class AcademicPageComponent implements OnInit {
         this.pendingSubjects.set([]);
         this.pendingBatches.set([]);
         const count = saved.subjects.length + saved.batches.length;
-        this.success.set(`${count} academic setup item${count === 1 ? ' was' : 's were'} saved to Class ${classLevel}.`);
+        this.success.set(this.i18n.t(
+          count === 1 ? 'academic.success.savedOne' : 'academic.success.savedOther',
+          { count, classLabel: this.classLabel(classLevel) },
+        ));
         this.refresh();
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.error.set(readApiError(error, 'Unable to save the queued academic setup. Your queued items are still available to retry.'));
+        this.error.set(this.apiError(error, 'academic.error.unableSaveSetup'));
       },
     });
   }
@@ -430,7 +438,7 @@ export class AcademicPageComponent implements OnInit {
 
     if (this.editingRoutineId() || this.routineForm.dirty) {
       this.clearFeedback();
-      this.error.set('Save or cancel the routine lesson before changing batches.');
+      this.error.set(this.i18n.t('academic.error.saveOrCancelBeforeBatch'));
       return;
     }
 
@@ -447,7 +455,7 @@ export class AcademicPageComponent implements OnInit {
 
     const batchId = this.selectedRoutineBatchId();
     if (!batchId) {
-      this.error.set('Choose a batch before adding a routine lesson.');
+      this.error.set(this.i18n.t('academic.error.chooseBatch'));
       return;
     }
 
@@ -483,12 +491,12 @@ export class AcademicPageComponent implements OnInit {
       next: () => {
         this.routineSaving.set(false);
         this.resetRoutineForm();
-        this.success.set(editingId ? 'Routine lesson updated.' : 'Routine lesson added.');
+        this.success.set(this.i18n.t(editingId ? 'academic.success.routineUpdated' : 'academic.success.routineAdded'));
         this.loadRoutine(batchId);
       },
       error: (error: unknown) => {
         this.routineSaving.set(false);
-        this.error.set(readApiError(error, 'Unable to save this routine lesson.'));
+        this.error.set(this.apiError(error, 'academic.error.unableSaveRoutine'));
       },
     });
   }
@@ -524,7 +532,7 @@ export class AcademicPageComponent implements OnInit {
       return;
     }
 
-    if (!window.confirm(`Remove ${slot.subjectName} from this batch routine?`)) {
+    if (!window.confirm(this.i18n.t('academic.confirmRemoveRoutine', { subjectName: slot.subjectName }))) {
       return;
     }
 
@@ -536,7 +544,7 @@ export class AcademicPageComponent implements OnInit {
         if (this.editingRoutineId() === slot.id) {
           this.resetRoutineForm();
         }
-        this.success.set('Routine lesson removed.');
+        this.success.set(this.i18n.t('academic.success.routineRemoved'));
         const batchId = this.selectedRoutineBatchId();
         if (batchId) {
           this.loadRoutine(batchId);
@@ -544,7 +552,7 @@ export class AcademicPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.routineSaving.set(false);
-        this.error.set(readApiError(error, 'Unable to remove this routine lesson.'));
+        this.error.set(this.apiError(error, 'academic.error.unableRemoveRoutine'));
       },
     });
   }
@@ -555,6 +563,45 @@ export class AcademicPageComponent implements OnInit {
 
   formatRoutineTime(time: string): string {
     return timeForInput(time);
+  }
+
+  classLabel(level: number): string {
+    return this.i18n.t('academic.classLabel', { classLevel: level });
+  }
+
+  classSummaryLabel(level: number): string {
+    const summary = this.classSummaryFor(level);
+    return this.i18n.t('academic.classSummary', {
+      subjectCount: summary.subjectCount,
+      batchCount: summary.batchCount,
+    });
+  }
+
+  routineDayLabel(dayOfWeek: number): string {
+    return this.i18n.t(ROUTINE_DAY_KEYS[dayOfWeek] ?? 'academic.day.monday');
+  }
+
+  lessonLabel(count: number): string {
+    return this.i18n.t(count === 1 ? 'academic.lessonOne' : 'academic.lessonOther', { count });
+  }
+
+  loadingRoutineLabel(): string {
+    return this.i18n.t('academic.loadingRoutine', {
+      batchName: this.selectedRoutineBatch()?.name || this.i18n.t('academic.batch'),
+    });
+  }
+
+  itemsReadyLabel(): string {
+    const count = this.pendingItemCount();
+    return this.i18n.t(count === 1 ? 'academic.itemsReadyOne' : 'academic.itemsReadyOther', { count });
+  }
+
+  itemsWillBeAddedLabel(): string {
+    return this.i18n.t('academic.itemsWillBeAdded', {
+      subjectCount: this.pendingSubjects().length,
+      batchCount: this.pendingBatches().length,
+      classLabel: this.classLabel(this.selectedClassLevel()),
+    });
   }
 
   routineInvalid(name: 'subjectId' | 'dayOfWeek' | 'startTime' | 'endTime' | 'roomCode' | 'teacherName'): boolean {
@@ -600,7 +647,7 @@ export class AcademicPageComponent implements OnInit {
         }
 
         this.routineLoading.set(false);
-        this.error.set(readApiError(error, 'Unable to load this batch routine.'));
+        this.error.set(this.apiError(error, 'academic.error.unableLoadRoutine'));
       },
     });
   }
@@ -635,9 +682,28 @@ export class AcademicPageComponent implements OnInit {
     return this.classLevels.map((classLevel) => summaries.find((summary) => summary.classLevel === classLevel)
       ?? { classLevel, subjectCount: 0, batchCount: 0 });
   }
+
+  private apiError(error: unknown, fallbackKey: string): string {
+    const message = readApiError(
+      error,
+      this.i18n.t(fallbackKey),
+      this.i18n.t('academic.error.serviceUnreachable'),
+    );
+    return this.i18n.errorMessage(message);
+  }
 }
 
-function readApiError(error: unknown, fallback: string): string {
+const ROUTINE_DAY_KEYS: Readonly<Record<number, string>> = {
+  1: 'academic.day.monday',
+  2: 'academic.day.tuesday',
+  3: 'academic.day.wednesday',
+  4: 'academic.day.thursday',
+  5: 'academic.day.friday',
+  6: 'academic.day.saturday',
+  7: 'academic.day.sunday',
+};
+
+function readApiError(error: unknown, fallback: string, unavailable: string): string {
   if (!(error instanceof HttpErrorResponse)) {
     return fallback;
   }
@@ -654,7 +720,7 @@ function readApiError(error: unknown, fallback: string): string {
     }
   }
 
-  return error.status === 0 ? 'The Academic service is not reachable. Check the API connection and try again.' : fallback;
+  return error.status === 0 ? unavailable : fallback;
 }
 
 function firstValidationError(value: unknown): string | null {

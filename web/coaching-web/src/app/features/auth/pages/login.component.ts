@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AuthFacade } from '../../../core/auth/auth.facade';
+import { I18nService } from '../../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-login',
@@ -19,41 +20,46 @@ import { AuthFacade } from '../../../core/auth/auth.facade';
     .proof { display: grid; gap: .7rem; grid-template-columns: repeat(3, 1fr); margin-top: 2.4rem; max-width: 31rem; } .proof div { border-left: 1px solid rgba(200, 222, 249, .3); padding-left: .7rem; } .proof strong { display: block; font-size: 1.2rem; letter-spacing: -.04em; } .proof small { color: #b6c5df; font-size: .68rem; line-height: 1.3; }
     .quote { border-top: 1px solid rgba(200, 222, 249, .16); color: #c0cde2; font-size: .78rem; line-height: 1.5; margin-top: auto; padding-top: 1.2rem; position: relative; z-index: 1; } .quote strong { color: #f0f5ff; display: block; font-size: .72rem; margin-top: .45rem; }
     .login-side { align-items: center; display: flex; justify-content: center; padding: clamp(1.2rem, 5vw, 4rem); } .card { max-width: 25rem; width: 100%; } .mobile-brand { display: none; }
+    .language-switcher { display: flex; gap: .4rem; justify-content: flex-end; margin: 0 0 1.25rem; } .language-button { background: #eef1fb; border: 0; border-radius: .55rem; color: #60708b; cursor: pointer; font: inherit; font-size: .72rem; font-weight: 800; min-width: 2.35rem; padding: .42rem .55rem; } .language-button.active { background: #6159e9; color: #fff; }
     .card h2 { color: #182b47; font-size: 1.8rem; letter-spacing: -.045em; margin: 0; } .intro { color: #74839b; font-size: .88rem; line-height: 1.55; margin: .6rem 0 1.8rem; }
     form { display: grid; gap: 1rem; } label { color: #44536b; display: grid; font-size: .76rem; font-weight: 750; gap: .45rem; } .field { align-items: center; background: #fff; border: 1px solid #dfe5f0; border-radius: .72rem; display: flex; gap: .55rem; padding: .05rem .75rem; transition: border-color .18s ease, box-shadow .18s ease; } .field:focus-within { border-color: #7670ee; box-shadow: 0 0 0 3px rgba(101, 91, 233, .12); } .field svg { fill: none; flex: 0 0 auto; height: 1rem; stroke: #8998ae; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; width: 1rem; } input { background: transparent; border: 0; color: #263b59; font: inherit; font-size: .9rem; outline: 0; padding: .82rem 0; width: 100%; } input::placeholder { color: #a7b2c3; } .password-toggle { background: transparent; border: 0; color: #71819a; cursor: pointer; font-size: .7rem; font-weight: 750; padding: .3rem 0; }
     .error { background: #fff1f2; border: 1px solid #ffd9dd; border-radius: .65rem; color: #b43d4c; font-size: .76rem; line-height: 1.45; margin: 0; padding: .7rem .8rem; } .submit { align-items: center; background: #6159e9; border: 0; border-radius: .72rem; box-shadow: 0 11px 22px rgba(91, 80, 224, .25); color: #fff; cursor: pointer; display: flex; font: inherit; font-size: .86rem; font-weight: 800; justify-content: center; min-height: 3rem; transition: transform .18s ease, background .18s ease; } .submit:hover:not(:disabled) { background: #554ee0; transform: translateY(-1px); } .submit:disabled { cursor: not-allowed; opacity: .65; }
     .security { align-items: center; color: #8290a5; display: flex; font-size: .7rem; gap: .4rem; line-height: 1.45; margin: 1.2rem 0 0; } .security svg { fill: none; height: .85rem; stroke: #18a87d; stroke-width: 2; width: .85rem; }
-    @media (max-width: 840px) { .page { grid-template-columns: 1fr; } .story { display: none; } .login-side { background: radial-gradient(circle at top right, #e8ecff, transparent 38%), #f7f8fc; min-height: 100dvh; } .mobile-brand { align-items: center; color: #263954; display: flex; font-size: .9rem; font-weight: 800; gap: .55rem; margin-bottom: 3rem; } .mobile-brand span { align-items: center; background: linear-gradient(135deg, #827cff, #43c7ef); border-radius: .65rem; color: #fff; display: inline-flex; font-size: .78rem; height: 2rem; justify-content: center; width: 2rem; } } @media (max-width: 420px) { .login-side { padding: 1.25rem; } .proof { gap: .35rem; } }
+    @media (max-width: 840px) { .page { grid-template-columns: 1fr; } .story { display: none; } .login-side { background: radial-gradient(circle at top right, #e8ecff, transparent 38%), #f7f8fc; min-height: 100dvh; } .mobile-brand { align-items: center; color: #263954; display: flex; font-size: .9rem; font-weight: 800; gap: .55rem; margin-bottom: 2rem; } .mobile-brand span { align-items: center; background: linear-gradient(135deg, #827cff, #43c7ef); border-radius: .65rem; color: #fff; display: inline-flex; font-size: .78rem; height: 2rem; justify-content: center; width: 2rem; } } @media (max-width: 420px) { .login-side { padding: 1.25rem; } .proof { gap: .35rem; } }
   `,
   template: `
     <main class="page">
-      <section class="story" aria-label="Coaching Hub introduction">
-        <a class="brand" href="/login"><span class="brand-mark">CH</span><span><strong>Coaching Hub</strong><small>Management portal</small></span></a>
+      <section class="story" [attr.aria-label]="i18n.t('login.introAria')">
+        <a class="brand" href="/login"><span class="brand-mark">CH</span><span><strong>{{ i18n.t('app.name') }}</strong><small>{{ i18n.t('app.portal') }}</small></span></a>
         <div class="story-copy">
-          <span class="kicker">One clear coaching day</span>
-          <h1>Run every class with calm, useful clarity.</h1>
-          <p>Bring students, attendance, academic work and finance together in a workspace built for the pace of a busy coaching centre.</p>
-          <div class="proof"><div><strong>1,248</strong><small>active learners</small></div><div><strong>93.4%</strong><small>attendance today</small></div><div><strong>12</strong><small>class levels</small></div></div>
+          <span class="kicker">{{ i18n.t('login.kicker') }}</span>
+          <h1>{{ i18n.t('login.headline') }}</h1>
+          <p>{{ i18n.t('login.story') }}</p>
+          <div class="proof"><div><strong>1,248</strong><small>{{ i18n.t('login.activeLearners') }}</small></div><div><strong>93.4%</strong><small>{{ i18n.t('login.attendanceToday') }}</small></div><div><strong>12</strong><small>{{ i18n.t('login.classLevels') }}</small></div></div>
         </div>
-        <p class="quote">“The right view of the day makes every follow-up feel lighter.”<strong>Coaching Hub operations</strong></p>
+        <p class="quote">“{{ i18n.t('login.quote') }}”<strong>{{ i18n.t('login.quoteSource') }}</strong></p>
       </section>
 
       <section class="login-side">
         <div class="card">
-          <div class="mobile-brand"><span>CH</span>Coaching Hub</div>
-          <h2>Welcome back</h2>
-          <p class="intro">Sign in to open your secure, role-aware coaching workspace.</p>
+          <div class="language-switcher" [attr.aria-label]="i18n.t('language.switcher')">
+            <button class="language-button" [class.active]="i18n.language() === 'en'" type="button" [attr.aria-pressed]="i18n.language() === 'en'" [attr.aria-label]="i18n.t('language.english')" (click)="i18n.setLanguage('en')">{{ i18n.t('language.englishShort') }}</button>
+            <button class="language-button" [class.active]="i18n.language() === 'bn'" type="button" [attr.aria-pressed]="i18n.language() === 'bn'" [attr.aria-label]="i18n.t('language.bangla')" (click)="i18n.setLanguage('bn')">{{ i18n.t('language.banglaShort') }}</button>
+          </div>
+          <div class="mobile-brand"><span>CH</span>{{ i18n.t('app.name') }}</div>
+          <h2>{{ i18n.t('login.welcome') }}</h2>
+          <p class="intro">{{ i18n.t('login.description') }}</p>
           <form (ngSubmit)="submit()" #loginForm="ngForm" novalidate>
-            <label>Email address
-              <span class="field"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg><input name="email" type="email" autocomplete="email" placeholder="you@coaching.local" required [(ngModel)]="email" [disabled]="loading()" /></span>
+            <label>{{ i18n.t('login.email') }}
+              <span class="field"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg><input name="email" type="email" autocomplete="email" [placeholder]="i18n.t('login.emailPlaceholder')" required [(ngModel)]="email" [disabled]="loading()" /></span>
             </label>
-            <label>Password
-              <span class="field"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg><input name="password" [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password" placeholder="Enter your password" required [(ngModel)]="password" [disabled]="loading()" /><button class="password-toggle" type="button" (click)="showPassword.set(!showPassword())">{{ showPassword() ? 'Hide' : 'Show' }}</button></span>
+            <label>{{ i18n.t('login.password') }}
+              <span class="field"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg><input name="password" [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password" [placeholder]="i18n.t('login.passwordPlaceholder')" required [(ngModel)]="password" [disabled]="loading()" /><button class="password-toggle" type="button" (click)="showPassword.set(!showPassword())">{{ showPassword() ? i18n.t('login.hidePassword') : i18n.t('login.showPassword') }}</button></span>
             </label>
-            @if (error(); as message) { <p class="error" role="alert">{{ message }}</p> }
-            <button class="submit" type="submit" [disabled]="loading() || loginForm.invalid">{{ loading() ? 'Signing you in…' : 'Sign in to workspace' }}</button>
+            @if (error(); as message) { <p class="error" role="alert">{{ i18n.errorMessage(message) }}</p> }
+            <button class="submit" type="submit" [disabled]="loading() || loginForm.invalid">{{ loading() ? i18n.t('login.signingIn') : i18n.t('login.signIn') }}</button>
           </form>
-          <p class="security"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 3 8.8 7 10 4-1.2 7-5.4 7-10V6z" /><path d="m9 12 2 2 4-4" /></svg>Your session uses secure access and refresh tokens.</p>
+          <p class="security"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 3 8.8 7 10 4-1.2 7-5.4 7-10V6z" /><path d="m9 12 2 2 4-4" /></svg>{{ i18n.t('login.security') }}</p>
         </div>
       </section>
     </main>
@@ -61,6 +67,7 @@ import { AuthFacade } from '../../../core/auth/auth.facade';
 })
 export class LoginComponent {
   readonly auth = inject(AuthFacade);
+  readonly i18n = inject(I18nService);
   private readonly route = inject(ActivatedRoute);
 
   email = '';

@@ -1,7 +1,8 @@
-import { AsyncPipe, DatePipe } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
+import { I18nService } from '../../../core/i18n/i18n.service';
 import { AttendanceStatus } from '../data/attendance.models';
 import { AttendanceActions } from '../store/attendance.actions';
 import { selectError, selectLoading, selectRows } from '../store/attendance.reducer';
@@ -9,7 +10,7 @@ import { selectError, selectLoading, selectRows } from '../store/attendance.redu
 @Component({
   selector: 'app-session-attendance',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, RouterLink],
+  imports: [AsyncPipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host { display: block; } .back { color: #675feb; display: inline-flex; font-size: .76rem; font-weight: 750; margin-bottom: .75rem; text-decoration: none; } .head { align-items: end; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.4rem; } .eyebrow { color: #7169eb; font-size: .7rem; font-weight: 800; letter-spacing: .09em; margin: 0 0 .4rem; text-transform: uppercase; } h1 { color: #162945; font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.045em; margin: 0; } .head p:not(.eyebrow) { color: #7d8ba2; font-size: .8rem; margin: .42rem 0 0; } .live { align-items: center; background: #e9f8f3; border-radius: 100px; color: #168463; display: inline-flex; font-size: .7rem; font-weight: 800; gap: .4rem; padding: .42rem .65rem; } .live::before { background: currentColor; border-radius: 50%; content: ''; height: .42rem; width: .42rem; }
@@ -17,21 +18,21 @@ import { selectError, selectLoading, selectRows } from '../store/attendance.redu
     .empty { color: #8795aa; font-size: .8rem; padding: 2rem; text-align: center; } @media (max-width: 560px) { .head { align-items: start; flex-direction: column; } }
   `,
   template: `
-    <a class="back" routerLink="/attendance">← Back to attendance centre</a>
-    <section class="head"><div><p class="eyebrow">Live class register</p><h1>Session attendance</h1><p>Review marks from device check-ins or make a manual correction.</p></div><span class="live">Session active</span></section>
-    @if (loading$ | async) { <p class="loading">Loading attendance register…</p> }
-    @if (error$ | async; as err) { <p class="notice">{{ err }}</p> }
+    <a class="back" routerLink="/attendance">{{ i18n.t('attendance.back') }}</a>
+    <section class="head"><div><p class="eyebrow">{{ i18n.t('attendance.liveRegister') }}</p><h1>{{ i18n.t('attendance.sessionAttendance') }}</h1><p>{{ i18n.t('attendance.description') }}</p></div><span class="live">{{ i18n.t('attendance.sessionActive') }}</span></section>
+    @if (loading$ | async) { <p class="loading">{{ i18n.t('attendance.loading') }}</p> }
+    @if (error$ | async; as err) { <p class="notice">{{ errorMessage(err) }}</p> }
     <section class="panel">
-      <div class="panel-top"><h2>Learner register</h2><span>Session {{ sessionId() }}</span></div>
+      <div class="panel-top"><h2>{{ i18n.t('attendance.register') }}</h2><span>{{ i18n.t('attendance.session', { id: sessionId() }) }}</span></div>
       <div class="table-wrap">
         @if (rows$ | async; as rows) {
           @if (rows.length) {
-            <table><thead><tr><th>Student</th><th>Status</th><th>Source</th><th>Marked at</th><th>Correct mark</th></tr></thead><tbody>
+            <table><thead><tr><th>{{ i18n.t('attendance.student') }}</th><th>{{ i18n.t('attendance.status') }}</th><th>{{ i18n.t('attendance.source') }}</th><th>{{ i18n.t('attendance.markedAt') }}</th><th>{{ i18n.t('attendance.correctMark') }}</th></tr></thead><tbody>
               @for (row of rows; track row.studentId) {
-                <tr><td class="student-id">{{ row.studentId }}</td><td><span class="status" [class]="row.status">{{ row.status }}</span></td><td class="source">{{ row.source }}</td><td>{{ row.markedAt | date:'shortTime' }}</td><td><div class="actions">@for (status of statuses; track status) { <button type="button" (click)="mark(row.studentId, status)" [disabled]="row.status === status">{{ status }}</button> }</div></td></tr>
+                <tr><td class="student-id">{{ row.studentId }}</td><td><span class="status" [class]="row.status">{{ statusLabel(row.status) }}</span></td><td class="source">{{ sourceLabel(row.source) }}</td><td>{{ formatTime(row.markedAt) }}</td><td><div class="actions">@for (status of statuses; track status) { <button type="button" (click)="mark(row.studentId, status)" [disabled]="row.status === status">{{ statusLabel(status) }}</button> }</div></td></tr>
               }
             </tbody></table>
-          } @else { <p class="empty">No attendance records have arrived for this session yet.</p> }
+          } @else { <p class="empty">{{ i18n.t('attendance.empty') }}</p> }
         }
       </div>
     </section>
@@ -39,6 +40,7 @@ import { selectError, selectLoading, selectRows } from '../store/attendance.redu
 })
 export class SessionAttendanceComponent implements OnInit {
   readonly sessionId = input.required<string>();
+  readonly i18n = inject(I18nService);
   private readonly store = inject(Store);
   readonly rows$ = this.store.select(selectRows);
   readonly loading$ = this.store.select(selectLoading);
@@ -51,5 +53,32 @@ export class SessionAttendanceComponent implements OnInit {
 
   mark(studentId: string, status: AttendanceStatus): void {
     this.store.dispatch(AttendanceActions.mark({ sessionId: this.sessionId(), studentId, status }));
+  }
+
+  statusLabel(status: AttendanceStatus): string {
+    const key: Record<AttendanceStatus, string> = {
+      Present: 'attendance.present',
+      Late: 'attendance.late',
+      Absent: 'attendance.absent',
+      Excused: 'attendance.excused',
+    };
+    return this.i18n.t(key[status]);
+  }
+
+  sourceLabel(source: string): string {
+    if (source.toLowerCase() === 'device') return this.i18n.t('attendance.device');
+    if (source.toLowerCase() === 'manual') return this.i18n.t('attendance.manual');
+    return source;
+  }
+
+  formatTime(value: string | Date): string {
+    return new Intl.DateTimeFormat(this.i18n.language() === 'bn' ? 'bn-BD' : 'en-BD', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(value));
+  }
+
+  errorMessage(message: string): string {
+    return this.i18n.errorMessage(message, 'attendance.requestFailed');
   }
 }

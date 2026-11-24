@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { I18nService } from '../../../core/i18n/i18n.service';
 import { ModuleRouteData, ModuleRow } from '../../../core/navigation/navigation';
 import { CoachingModuleApi } from '../data/coaching-module.api';
 
@@ -36,47 +37,48 @@ import { CoachingModuleApi } from '../data/coaching-module.api';
   template: `
     <section class="page-head">
       <div>
-        <p class="eyebrow">{{ data.eyebrow }}</p>
-        <h1>{{ data.title }}</h1>
-        <p class="description">{{ data.description }}</p>
+        <p class="eyebrow">{{ i18n.t(data.eyebrowKey) }}</p>
+        <h1>{{ i18n.t(data.titleKey) }}</h1>
+        <p class="description">{{ i18n.t(data.descriptionKey) }}</p>
       </div>
-      <button class="primary" type="button" (click)="openAction()">＋ {{ data.action }}</button>
+      <button class="primary" type="button" (click)="openAction()">＋ {{ i18n.t(data.actionKey) }}</button>
     </section>
 
     <section class="metrics">
-      @for (metric of data.metrics; track metric.label) {
+      @for (metric of data.metrics; track metric.labelKey) {
         <article class="metric" [class]="metric.tone">
-          <span>{{ metric.label }}</span><strong>{{ metric.value }}</strong><small>{{ metric.detail }}</small>
+          <span>{{ i18n.t(metric.labelKey) }}</span><strong>{{ metric.value }}</strong><small>{{ i18n.t(metric.detailKey) }}</small>
         </article>
       }
     </section>
 
     <section class="workspace">
       <div class="workspace-top">
-        <div><h2>Latest workspace records</h2><p>{{ liveData() ? 'Live records loaded from the protected service.' : 'Preview data shown until the module service is online.' }}</p></div>
-        <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [ngModel]="query()" (ngModelChange)="query.set($event)" type="search" placeholder="Filter records" /></label>
+        <div><h2>{{ i18n.t('common.latestRecords') }}</h2><p>{{ liveData() ? i18n.t('common.liveRecords') : i18n.t('common.previewRecords') }}</p></div>
+        <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [ngModel]="query()" (ngModelChange)="query.set($event)" type="search" [placeholder]="i18n.t('common.filterRecords')" /></label>
       </div>
       <div class="table-wrap">
         @if (filteredRows().length) {
           <table>
-            <thead><tr>@for (column of data.columns; track column.key) { <th>{{ column.label }}</th> }</tr></thead>
+            <thead><tr>@for (column of data.columns; track column.key) { <th>{{ i18n.t(column.labelKey) }}</th> }</tr></thead>
             <tbody>
               @for (row of filteredRows(); track row.id) {
-                <tr>@for (column of data.columns; track column.key) { <td>{{ row[column.key] }}</td> }</tr>
+                <tr>@for (column of data.columns; track column.key) { <td>{{ formatCell(row[column.key]) }}</td> }</tr>
               }
             </tbody>
           </table>
-        } @else { <p class="empty">No matching records. Try a different search.</p> }
+        } @else { <p class="empty">{{ i18n.t('common.noMatchingRecords') }}</p> }
       </div>
-      <footer class="footer"><span>Showing {{ filteredRows().length }} of {{ rows().length }} records</span><span class="endpoint">{{ data.endpoint }}</span></footer>
+      <footer class="footer"><span>{{ i18n.t('common.showingRecords', { shown: filteredRows().length, total: rows().length }) }}</span><span class="endpoint">{{ data.endpoint }}</span></footer>
     </section>
 
-    @if (toast()) { <div class="toast"><span>Ready</span>{{ toast() }}</div> }
+    @if (toast()) { <div class="toast"><span>{{ i18n.t('common.ready') }}</span>{{ toast() }}</div> }
   `,
 })
 export class ModulePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(CoachingModuleApi);
+  readonly i18n = inject(I18nService);
   readonly data = this.route.snapshot.data as ModuleRouteData;
   readonly query = signal('');
   readonly toast = signal<string | null>(null);
@@ -90,7 +92,7 @@ export class ModulePageComponent implements OnInit {
 
     this.api.list(this.data.apiPath).subscribe({
       next: (records) => {
-        const rows = toModuleRows(this.data.module, records);
+        const rows = toModuleRows(this.data.module, records, this.i18n);
         if (rows.length) {
           this.rows.set(rows);
           this.liveData.set(true);
@@ -102,9 +104,13 @@ export class ModulePageComponent implements OnInit {
   }
 
   openAction(): void {
-    this.toast.set(`${this.data.action} is ready to connect to the protected API flow.`);
+    this.toast.set(this.i18n.t('common.protectedApiFlow', { action: this.i18n.t(this.data.actionKey) }));
     if (this.toastTimer) { clearTimeout(this.toastTimer); }
     this.toastTimer = setTimeout(() => this.toast.set(null), 3600);
+  }
+
+  formatCell(value: string): string {
+    return this.i18n.displayValue(value);
   }
 }
 
@@ -114,54 +120,60 @@ function filterRows(rows: ModuleRow[], query: string): ModuleRow[] {
   return rows.filter((row) => Object.values(row).some((value) => value.toLowerCase().includes(term)));
 }
 
-function toModuleRows(module: string, records: Record<string, unknown>[]): ModuleRow[] {
+function toModuleRows(module: string, records: Record<string, unknown>[], i18n: I18nService): ModuleRow[] {
   return records.map((record, index): ModuleRow => {
-    const id = text(record['id']) || `${module}-${index}`;
+    const id = text(record['id'], i18n) || `${module}-${index}`;
     switch (module) {
       case 'students': return {
-        id, name: text(record['fullName']), studentNo: text(record['studentNo']),
-        classLevel: classLabel(record['classLevel']), guardian: text(record['guardianPhone']) || '—', status: 'Active',
+        id, name: text(record['fullName'], i18n), studentNo: text(record['studentNo'], i18n),
+        classLevel: classLabel(record['classLevel'], i18n), guardian: text(record['guardianPhone'], i18n), status: 'Active',
       };
       case 'academic': return {
-        id, name: text(record['name']), code: text(record['code']), classLevel: classLabel(record['classLevel']),
-        teacher: 'Assigned by coaching', status: 'Published',
+        id, name: text(record['name'], i18n), code: text(record['code'], i18n), classLevel: classLabel(record['classLevel'], i18n),
+        teacher: i18n.t('common.assignedByCoaching'), status: 'Published',
       };
       case 'exams': return {
-        id, name: text(record['title']), classLevel: classLabel(record['classLevel']), subject: text(record['subjectId']) || '—',
-        date: friendlyDate(record['examDate']), status: 'Scheduled',
+        id, name: text(record['title'], i18n), classLevel: classLabel(record['classLevel'], i18n), subject: text(record['subjectId'], i18n),
+        date: friendlyDate(record['examDate'], i18n), status: 'Scheduled',
       };
       case 'finance': return {
-        id, name: text(record['title']), student: text(record['studentId']), amount: money(record['amount']),
-        dueDate: friendlyDate(record['dueDate']), status: text(record['paidAmount']) === text(record['amount']) ? 'Paid' : 'Outstanding',
+        id, name: text(record['title'], i18n), student: text(record['studentId'], i18n), amount: money(record['amount'], i18n),
+        dueDate: friendlyDate(record['dueDate'], i18n), status: text(record['paidAmount'], i18n) === text(record['amount'], i18n) ? 'Paid' : 'Outstanding',
       };
       case 'devices': return {
-        id, name: text(record['name']), serial: text(record['serial']), room: text(record['roomCode']) || '—',
-        lastSeen: friendlyDate(record['lastSeenAt']), status: record['isActive'] === false ? 'Offline' : 'Online',
+        id, name: text(record['name'], i18n), serial: text(record['serial'], i18n), room: text(record['roomCode'], i18n),
+        lastSeen: friendlyDate(record['lastSeenAt'], i18n), status: record['isActive'] === false ? 'Offline' : 'Online',
       };
       case 'users': return {
-        id, name: text(record['fullName']), email: text(record['email']), role: text(record['role']),
-        lastSeen: 'Active session', status: 'Active',
+        id, name: text(record['fullName'], i18n), email: text(record['email'], i18n), role: text(record['role'], i18n),
+        lastSeen: i18n.t('common.activeSession'), status: 'Active',
       };
-      default: return { id, name: text(record['name']) || text(record['title']) || 'Record', status: 'Active' };
+      default: return {
+        id,
+        name: text(record['name'], i18n) || text(record['title'], i18n) || i18n.t('common.record'),
+        status: 'Active',
+      };
     }
   });
 }
 
-function text(value: unknown): string {
-  return value === null || value === undefined || value === '' ? '—' : String(value);
+function text(value: unknown, i18n: I18nService): string {
+  return value === null || value === undefined || value === '' ? i18n.t('common.notAvailable') : String(value);
 }
 
-function classLabel(value: unknown): string {
-  return value === null || value === undefined ? '—' : `Class ${value}`;
+function classLabel(value: unknown, i18n: I18nService): string {
+  return i18n.formatClassLevel(value === null || value === undefined ? null : String(value));
 }
 
-function money(value: unknown): string {
+function money(value: unknown, i18n: I18nService): string {
   const amount = Number(value);
-  return Number.isFinite(amount) ? `৳ ${amount.toLocaleString('en-BD')}` : '—';
+  return Number.isFinite(amount) ? i18n.formatCurrency(amount) : i18n.t('common.notAvailable');
 }
 
-function friendlyDate(value: unknown): string {
-  if (!value) { return '—'; }
+function friendlyDate(value: unknown, i18n: I18nService): string {
+  if (!value) { return i18n.t('common.notAvailable'); }
   const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? text(value) : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return Number.isNaN(date.getTime())
+    ? text(value, i18n)
+    : i18n.formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
 }
