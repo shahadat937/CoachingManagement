@@ -4,11 +4,13 @@ import { Observable } from 'rxjs';
 import {
   AcademicBatch,
   AcademicClassSummary,
+  AcademicRoutineSlot,
   AcademicSubject,
   CreateAcademicBatchRequest,
   CreateAcademicSubjectRequest,
   SaveAcademicSetupRequest,
   SaveAcademicSetupResponse,
+  SaveAcademicRoutineRequest,
 } from './academic.models';
 
 @Injectable({ providedIn: 'root' })
@@ -42,5 +44,23 @@ export class AcademicApi {
 
   saveSetup(request: SaveAcademicSetupRequest): Observable<SaveAcademicSetupResponse> {
     return this.http.post<SaveAcademicSetupResponse>(`${this.baseUrl}/setup`, request);
+  }
+
+  routines(batchId: string): Observable<AcademicRoutineSlot[]> {
+    return this.http.get<AcademicRoutineSlot[]>(`${this.baseUrl}/routines`, {
+      params: new HttpParams().set('batchId', batchId),
+    });
+  }
+
+  createRoutine(request: SaveAcademicRoutineRequest): Observable<AcademicRoutineSlot> {
+    return this.http.post<AcademicRoutineSlot>(`${this.baseUrl}/routines`, request);
+  }
+
+  updateRoutine(id: string, request: SaveAcademicRoutineRequest): Observable<AcademicRoutineSlot> {
+    return this.http.put<AcademicRoutineSlot>(`${this.baseUrl}/routines/${id}`, request);
+  }
+
+  deleteRoutine(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/routines/${id}`);
   }
 }

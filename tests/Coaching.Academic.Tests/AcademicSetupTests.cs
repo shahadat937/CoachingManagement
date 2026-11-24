@@ -153,6 +153,124 @@ public class AcademicSetupTests
     }
 
     [Fact]
+    public async Task Routine_creation_links_a_class_subject_to_its_batch_and_normalizes_the_room()
+    {
+        var store = new InMemoryAcademicStore();
+        var subject = Subject(8, "Mathematics", "MATH-08");
+        var batch = Batch(8, "Morning", "M-8");
+        store.Subjects.Add(subject);
+        store.Batches.Add(batch);
+
+        var routine = await new CreateBatchRoutineHandler(store).Handle(
+            new CreateBatchRoutineCommand(
+                batch.Id,
+                subject.Id,
+                1,
+                new TimeOnly(9, 0),
+                new TimeOnly(9, 50),
+                "  Room   201 "),
+            CancellationToken.None);
+
+        Assert.Equal(batch.Id, routine.BatchId);
+        Assert.Equal(subject.Id, routine.SubjectId);
+        Assert.Equal("Mathematics", routine.SubjectName);
+        Assert.Equal("Room 201", routine.RoomCode);
+        Assert.Single(store.RoutineSlots);
+        Assert.Equal(1, store.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task Routine_creation_rejects_a_subject_from_another_class()
+    {
+        var store = new InMemoryAcademicStore();
+        var classEightSubject = Subject(8, "Mathematics", "MATH-08");
+        var classNineSubject = Subject(9, "Physics", "PHY-09");
+        var batch = Batch(8, "Morning", "M-8");
+        store.Subjects.AddRange([classEightSubject, classNineSubject]);
+        store.Batches.Add(batch);
+
+        var exception = await Assert.ThrowsAsync<AcademicInputException>(() =>
+            new CreateBatchRoutineHandler(store).Handle(
+                new CreateBatchRoutineCommand(
+                    batch.Id,
+                    classNineSubject.Id,
+                    1,
+                    new TimeOnly(9, 0),
+                    new TimeOnly(9, 50),
+                    "R-201"),
+                CancellationToken.None));
+
+        Assert.Equal("subjectId", exception.Field);
+        Assert.Empty(store.RoutineSlots);
+        Assert.Equal(0, store.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task Routine_creation_rejects_overlaps_but_allows_adjacent_lessons()
+    {
+        var store = new InMemoryAcademicStore();
+        var math = Subject(8, "Mathematics", "MATH-08");
+        var english = Subject(8, "English", "ENG-08");
+        var batch = Batch(8, "Morning", "M-8");
+        store.Subjects.AddRange([math, english]);
+        store.Batches.Add(batch);
+        var handler = new CreateBatchRoutineHandler(store);
+
+        await handler.Handle(
+            new CreateBatchRoutineCommand(batch.Id, math.Id, 1, new TimeOnly(9, 0), new TimeOnly(9, 50), "R-201"),
+            CancellationToken.None);
+        var adjacent = await handler.Handle(
+            new CreateBatchRoutineCommand(batch.Id, english.Id, 1, new TimeOnly(9, 50), new TimeOnly(10, 40), "R-201"),
+            CancellationToken.None);
+        var overlap = await Assert.ThrowsAsync<AcademicConflictException>(() =>
+            handler.Handle(
+                new CreateBatchRoutineCommand(batch.Id, english.Id, 1, new TimeOnly(9, 30), new TimeOnly(10, 20), "R-201"),
+                CancellationToken.None));
+
+        Assert.Equal("routine", overlap.Field);
+        Assert.Equal(new TimeOnly(9, 50), adjacent.StartTime);
+        Assert.Equal(2, store.RoutineSlots.Count);
+    }
+
+    [Fact]
+    public async Task Routine_can_be_updated_listed_in_weekly_order_and_deleted()
+    {
+        var store = new InMemoryAcademicStore();
+        var math = Subject(8, "Mathematics", "MATH-08");
+        var english = Subject(8, "English", "ENG-08");
+        var batch = Batch(8, "Morning", "M-8");
+        store.Subjects.AddRange([math, english]);
+        store.Batches.Add(batch);
+        var create = new CreateBatchRoutineHandler(store);
+        var monday = await create.Handle(
+            new CreateBatchRoutineCommand(batch.Id, math.Id, 1, new TimeOnly(10, 0), new TimeOnly(10, 50), "R-201"),
+            CancellationToken.None);
+        await create.Handle(
+            new CreateBatchRoutineCommand(batch.Id, english.Id, 2, new TimeOnly(9, 0), new TimeOnly(9, 50), "R-202"),
+            CancellationToken.None);
+
+        var updated = await new UpdateBatchRoutineHandler(store).Handle(
+            new UpdateBatchRoutineCommand(
+                monday.Id,
+                batch.Id,
+                english.Id,
+                1,
+                new TimeOnly(9, 0),
+                new TimeOnly(9, 50),
+                "R-203"),
+            CancellationToken.None);
+        var listed = await new ListBatchRoutineHandler(store).Handle(new ListBatchRoutineQuery(batch.Id), CancellationToken.None);
+        await new DeleteBatchRoutineHandler(store).Handle(new DeleteBatchRoutineCommand(monday.Id), CancellationToken.None);
+
+        Assert.Equal("English", updated.SubjectName);
+        Assert.Equal("R-203", updated.RoomCode);
+        Assert.Equal(2, listed.Count);
+        Assert.Equal(1, listed[0].DayOfWeek);
+        Assert.Equal(2, listed[1].DayOfWeek);
+        Assert.Single(store.RoutineSlots);
+    }
+
+    [Fact]
     public async Task Class_summary_returns_all_levels_with_class_scoped_counts()
     {
         var store = new InMemoryAcademicStore();
@@ -213,6 +331,7 @@ public class AcademicSetupTests
     {
         public List<Subject> Subjects { get; } = [];
         public List<AcademicBatch> Batches { get; } = [];
+        public List<BatchRoutineSlot> RoutineSlots { get; } = [];
         public int SaveChangesCount { get; private set; }
 
         public Task<IReadOnlyList<Subject>> ListSubjectsAsync(int? classLevel, CancellationToken ct = default) =>
@@ -255,6 +374,36 @@ public class AcademicSetupTests
             Task.FromResult(Batches.FirstOrDefault(batch => batch.ClassLevel == classLevel &&
                 string.Equals(batch.Code, code, StringComparison.OrdinalIgnoreCase)));
 
+        public Task<Subject?> FindSubjectByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(Subjects.FirstOrDefault(subject => subject.Id == id));
+
+        public Task<AcademicBatch?> FindBatchByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(Batches.FirstOrDefault(batch => batch.Id == id));
+
+        public Task<IReadOnlyList<BatchRoutineSlot>> ListRoutineSlotsAsync(Guid batchId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<BatchRoutineSlot>>(RoutineSlots
+                .Where(slot => slot.BatchId == batchId)
+                .OrderBy(slot => slot.DayOfWeek)
+                .ThenBy(slot => slot.StartTime)
+                .ToArray());
+
+        public Task<BatchRoutineSlot?> FindRoutineSlotByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(RoutineSlots.FirstOrDefault(slot => slot.Id == id));
+
+        public Task<bool> HasRoutineOverlapAsync(
+            Guid batchId,
+            int dayOfWeek,
+            TimeOnly startTime,
+            TimeOnly endTime,
+            Guid? excludingSlotId = null,
+            CancellationToken ct = default) =>
+            Task.FromResult(RoutineSlots.Any(slot =>
+                slot.BatchId == batchId
+                && slot.DayOfWeek == dayOfWeek
+                && (excludingSlotId is null || slot.Id != excludingSlotId)
+                && slot.StartTime < endTime
+                && startTime < slot.EndTime));
+
         public Task AddSubjectAsync(Subject subject, CancellationToken ct = default)
         {
             Subjects.Add(subject);
@@ -266,6 +415,14 @@ public class AcademicSetupTests
             Batches.Add(batch);
             return Task.CompletedTask;
         }
+
+        public Task AddRoutineSlotAsync(BatchRoutineSlot slot, CancellationToken ct = default)
+        {
+            RoutineSlots.Add(slot);
+            return Task.CompletedTask;
+        }
+
+        public void RemoveRoutineSlot(BatchRoutineSlot slot) => RoutineSlots.Remove(slot);
 
         public Task<int> SaveChangesAsync(CancellationToken ct = default)
         {

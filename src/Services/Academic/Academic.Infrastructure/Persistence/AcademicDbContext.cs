@@ -7,6 +7,7 @@ public class AcademicDbContext(DbContextOptions<AcademicDbContext> options) : Db
 {
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<AcademicBatch> AcademicBatches => Set<AcademicBatch>();
+    public DbSet<BatchRoutineSlot> BatchRoutineSlots => Set<BatchRoutineSlot>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -24,6 +25,28 @@ public class AcademicDbContext(DbContextOptions<AcademicDbContext> options) : Db
             entity.Property(batch => batch.Code).HasMaxLength(32);
             entity.HasIndex(batch => new { batch.ClassLevel, batch.Name }).IsUnique();
             entity.HasIndex(batch => new { batch.ClassLevel, batch.Code }).IsUnique();
+        });
+
+        builder.Entity<BatchRoutineSlot>(entity =>
+        {
+            entity.Property(slot => slot.RoomCode).HasMaxLength(60);
+            entity.Property(slot => slot.StartTime).HasColumnType("time without time zone");
+            entity.Property(slot => slot.EndTime).HasColumnType("time without time zone");
+            entity.HasIndex(slot => new { slot.BatchId, slot.DayOfWeek, slot.StartTime }).IsUnique();
+            entity.HasIndex(slot => new { slot.BatchId, slot.DayOfWeek });
+            entity.HasOne<AcademicBatch>()
+                .WithMany()
+                .HasForeignKey(slot => slot.BatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Subject>()
+                .WithMany()
+                .HasForeignKey(slot => slot.SubjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_BatchRoutineSlots_DayOfWeek", "\"DayOfWeek\" BETWEEN 1 AND 7");
+                table.HasCheckConstraint("CK_BatchRoutineSlots_TimeRange", "\"EndTime\" > \"StartTime\"");
+            });
         });
     }
 }

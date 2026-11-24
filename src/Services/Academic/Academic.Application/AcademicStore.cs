@@ -15,7 +15,20 @@ public interface IAcademicStore
     Task<Subject?> FindSubjectByClassLevelAndCodeAsync(int classLevel, string code, CancellationToken ct = default);
     Task<AcademicBatch?> FindBatchByClassLevelAndNameAsync(int classLevel, string name, CancellationToken ct = default);
     Task<AcademicBatch?> FindBatchByClassLevelAndCodeAsync(int classLevel, string code, CancellationToken ct = default);
+    Task<Subject?> FindSubjectByIdAsync(Guid id, CancellationToken ct = default);
+    Task<AcademicBatch?> FindBatchByIdAsync(Guid id, CancellationToken ct = default);
+    Task<IReadOnlyList<BatchRoutineSlot>> ListRoutineSlotsAsync(Guid batchId, CancellationToken ct = default);
+    Task<BatchRoutineSlot?> FindRoutineSlotByIdAsync(Guid id, CancellationToken ct = default);
+    Task<bool> HasRoutineOverlapAsync(
+        Guid batchId,
+        int dayOfWeek,
+        TimeOnly startTime,
+        TimeOnly endTime,
+        Guid? excludingSlotId = null,
+        CancellationToken ct = default);
     Task AddSubjectAsync(Subject subject, CancellationToken ct = default);
     Task AddBatchAsync(AcademicBatch batch, CancellationToken ct = default);
+    Task AddRoutineSlotAsync(BatchRoutineSlot slot, CancellationToken ct = default);
+    void RemoveRoutineSlot(BatchRoutineSlot slot);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

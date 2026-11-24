@@ -50,3 +50,24 @@ export interface SaveAcademicSetupResponse {
   subjects: AcademicSubject[];
   batches: AcademicBatch[];
 }
+
+export interface AcademicRoutineSlot {
+  id: string;
+  batchId: string;
+  subjectId: string;
+  subjectName: string;
+  subjectCode: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  roomCode: string;
+}
+
+export interface SaveAcademicRoutineRequest {
+  batchId: string;
+  subjectId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  roomCode: string;
+}

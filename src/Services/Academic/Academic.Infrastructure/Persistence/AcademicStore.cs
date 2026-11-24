@@ -54,11 +54,48 @@ public sealed class AcademicStore(AcademicDbContext db) : IAcademicStore
         db.AcademicBatches.FirstOrDefaultAsync(
             batch => batch.ClassLevel == classLevel && batch.Code == code, ct);
 
+    public Task<Subject?> FindSubjectByIdAsync(Guid id, CancellationToken ct = default) =>
+        db.Subjects.FirstOrDefaultAsync(subject => subject.Id == id, ct);
+
+    public Task<AcademicBatch?> FindBatchByIdAsync(Guid id, CancellationToken ct = default) =>
+        db.AcademicBatches.FirstOrDefaultAsync(batch => batch.Id == id, ct);
+
+    public async Task<IReadOnlyList<BatchRoutineSlot>> ListRoutineSlotsAsync(Guid batchId, CancellationToken ct = default) =>
+        await db.BatchRoutineSlots
+            .AsNoTracking()
+            .Where(slot => slot.BatchId == batchId)
+            .OrderBy(slot => slot.DayOfWeek)
+            .ThenBy(slot => slot.StartTime)
+            .ToListAsync(ct);
+
+    public Task<BatchRoutineSlot?> FindRoutineSlotByIdAsync(Guid id, CancellationToken ct = default) =>
+        db.BatchRoutineSlots.FirstOrDefaultAsync(slot => slot.Id == id, ct);
+
+    public Task<bool> HasRoutineOverlapAsync(
+        Guid batchId,
+        int dayOfWeek,
+        TimeOnly startTime,
+        TimeOnly endTime,
+        Guid? excludingSlotId = null,
+        CancellationToken ct = default) =>
+        db.BatchRoutineSlots.AnyAsync(slot =>
+            slot.BatchId == batchId
+            && slot.DayOfWeek == dayOfWeek
+            && (excludingSlotId == null || slot.Id != excludingSlotId)
+            && slot.StartTime < endTime
+            && startTime < slot.EndTime,
+            ct);
+
     public async Task AddSubjectAsync(Subject subject, CancellationToken ct = default) =>
         await db.Subjects.AddAsync(subject, ct);
 
     public async Task AddBatchAsync(AcademicBatch batch, CancellationToken ct = default) =>
         await db.AcademicBatches.AddAsync(batch, ct);
+
+    public async Task AddRoutineSlotAsync(BatchRoutineSlot slot, CancellationToken ct = default) =>
+        await db.BatchRoutineSlots.AddAsync(slot, ct);
+
+    public void RemoveRoutineSlot(BatchRoutineSlot slot) => db.BatchRoutineSlots.Remove(slot);
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
