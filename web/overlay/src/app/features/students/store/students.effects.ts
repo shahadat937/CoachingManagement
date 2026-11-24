@@ -84,7 +84,7 @@ export const activate$ = createEffect(
 export const reloadDirectoryAfterMutation$ = createEffect(
   (actions$ = inject(Actions), store = inject(Store)) =>
     actions$.pipe(
-      ofType(A.createSuccess, A.updateSuccess, A.deactivateSuccess, A.activateSuccess),
+      ofType(A.createSuccess, A.updateSuccess, A.deactivateSuccess, A.activateSuccess, A.uploadPhotoSuccess),
       withLatestFrom(
         store.select(selectIsActiveFilter),
         store.select(selectCurrentPage),
@@ -103,7 +103,7 @@ export const uploadPhoto$ = createEffect(
         map((metadata) => A.uploadPhotoSuccess({ studentId, metadata })),
         catchError((error: unknown) => of(A.uploadPhotoFailure({
           studentId,
-          error: getApiError(error, 'The student was added, but their photo could not be uploaded.'),
+          error: getApiError(error, 'The photo could not be uploaded. Try again.'),
         }))),
       )),
     ),

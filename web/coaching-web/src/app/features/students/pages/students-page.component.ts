@@ -183,10 +183,34 @@ import {
       <div class="dialog-backdrop" (click)="closeEditFromBackdrop($event)">
         <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="edit-student-title">
           <header class="dialog-head">
-            <div><p class="eyebrow">Learner record</p><h2 id="edit-student-title">Edit student</h2><p>Update {{ student.fullName }}'s directory details. Their passport photo stays unchanged.</p></div>
+            <div><p class="eyebrow">Learner record</p><h2 id="edit-student-title">Edit student</h2><p>Update {{ student.fullName }}'s directory details or replace their passport photo.</p></div>
             <button class="close" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()" aria-label="Close edit student form">&times;</button>
           </header>
           <form [formGroup]="editStudentForm" (ngSubmit)="updateStudent()" novalidate>
+            <div class="photo-field">
+              <span class="photo-label">Passport photo <span class="optional">Optional</span></span>
+              <input #editPhotoInput class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" (change)="onEditPhotoInput($event)" />
+              @if (editPhotoPreviewUrl(); as previewUrl) {
+                <div class="photo-preview">
+                  <img class="preview-image" [src]="previewUrl" alt="Selected replacement photo preview" />
+                  <div class="preview-details">@if (editSelectedPhoto(); as photo) { <strong>{{ photo.name }}</strong><span>{{ formatPhotoSize(photo.size) }} · Ready to replace</span> }</div>
+                  <div class="preview-actions"><button class="text-button" type="button" (click)="editPhotoInput.click()" [disabled]="isSubmitting()">Replace</button><button class="text-button danger" type="button" (click)="removeEditSelectedPhoto()" [disabled]="isSubmitting()">Keep current</button></div>
+                </div>
+              } @else {
+                @if (photoUrl(student.id); as currentPhotoUrl) {
+                  <div class="photo-preview">
+                    <img class="preview-image" [src]="currentPhotoUrl" [alt]="'Current passport photo for ' + student.fullName" />
+                    <div class="preview-details"><strong>Current passport photo</strong><span>Choose a new file to replace it.</span></div>
+                    <div class="preview-actions"><button class="text-button" type="button" (click)="editPhotoInput.click()" [disabled]="isSubmitting()">Change</button></div>
+                  </div>
+                }
+                <button class="photo-dropzone" [class.dragging]="editPhotoDropActive()" type="button" (click)="editPhotoInput.click()" (dragover)="onEditPhotoDragOver($event)" (dragleave)="onEditPhotoDragLeave($event)" (drop)="onEditPhotoDrop($event)" [disabled]="isSubmitting()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
+                  <span><strong>{{ student.hasPhoto ? 'Drop a replacement photo here or browse' : 'Drop a photo here or browse' }}</strong>JPEG, PNG or WebP · up to 2 MB</span>
+                </button>
+              }
+              @if (editPhotoError(); as message) { <p class="photo-error" role="alert">{{ message }}</p> }
+            </div>
             @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
             <div class="field">
               <label for="edit-studentNo">Student number</label>
@@ -219,7 +243,7 @@ import {
             </div>
             <div class="form-actions">
               <button class="secondary" type="button" (click)="closeEditForm()" [disabled]="isSubmitting()">Cancel</button>
-              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Saving changes... } @else { Save changes }</button>
+              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Saving changes... } @else if (uploadingPhotoId()) { <span class="saving-dot"></span>Uploading photo... } @else if (editPhotoUploadStudentId() && editSelectedPhoto()) { Retry photo upload } @else { Save changes }</button>
             </div>
           </form>
         </section>
@@ -293,6 +317,11 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   readonly photoError = signal<string | null>(null);
   readonly photoDropActive = signal(false);
   readonly createdStudentId = signal<string | null>(null);
+  readonly editSelectedPhoto = signal<File | null>(null);
+  readonly editPhotoPreviewUrl = signal<string | null>(null);
+  readonly editPhotoError = signal<string | null>(null);
+  readonly editPhotoDropActive = signal(false);
+  readonly editPhotoUploadStudentId = signal<string | null>(null);
   readonly classLevels = Array.from({ length: 12 }, (_, index) => index + 1);
   readonly pageSizes = [10, 25, 50];
   readonly filteredStudents = computed(() => filterStudents(this.students(), this.query()));
@@ -361,6 +390,10 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
       if (this.createdStudentId() === studentId) {
         this.completeStudentCreation();
       }
+
+      if (this.editPhotoUploadStudentId() === studentId && this.editingStudent()?.id === studentId) {
+        this.completeStudentEdit();
+      }
     });
 
     this.actions$.pipe(
@@ -368,6 +401,21 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(({ student }) => {
       if (this.editingStudent()?.id === student.id) {
+        this.editingStudent.set(student);
+        this.editStudentForm.reset({
+          studentNo: student.studentNo,
+          fullName: student.fullName,
+          classLevel: student.classLevel,
+          guardianPhone: student.guardianPhone,
+          deviceUserId: student.deviceUserId ?? '',
+        });
+        const photo = this.editSelectedPhoto();
+        if (photo) {
+          this.editPhotoUploadStudentId.set(student.id);
+          this.store.dispatch(StudentsActions.uploadPhoto({ studentId: student.id, photo }));
+          return;
+        }
+
         this.completeStudentEdit();
       }
     });
@@ -411,6 +459,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     }
 
     this.store.dispatch(StudentsActions.clearFeedback());
+    this.clearEditSelectedPhoto();
     this.editStudentForm.reset({
       studentNo: student.studentNo,
       fullName: student.fullName,
@@ -419,6 +468,9 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
       deviceUserId: student.deviceUserId ?? '',
     });
     this.editingStudent.set(student);
+    if (student.hasPhoto && !this.photoUrl(student.id)) {
+      this.store.dispatch(StudentsActions.loadPhoto({ studentId: student.id }));
+    }
   }
 
   openDeactivateDialog(student: Student): void {
@@ -585,6 +637,18 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const photo = this.editSelectedPhoto();
+    if (photo && this.editPhotoUploadStudentId() === student.id && !this.editStudentForm.dirty) {
+      this.store.dispatch(StudentsActions.uploadPhoto({ studentId: student.id, photo }));
+      return;
+    }
+
+    if (photo && !this.editStudentForm.dirty) {
+      this.editPhotoUploadStudentId.set(student.id);
+      this.store.dispatch(StudentsActions.uploadPhoto({ studentId: student.id, photo }));
+      return;
+    }
+
     const value = this.editStudentForm.getRawValue();
     this.store.dispatch(StudentsActions.update({
       studentId: student.id,
@@ -666,6 +730,54 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     this.clearSelectedPhoto();
   }
 
+  onEditPhotoInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const photo = input.files?.item(0) ?? null;
+    input.value = '';
+    if (photo) {
+      this.selectEditPhoto(photo);
+    }
+  }
+
+  onEditPhotoDragOver(event: DragEvent): void {
+    event.preventDefault();
+    if (!this.isSubmitting()) {
+      this.editPhotoDropActive.set(true);
+    }
+  }
+
+  onEditPhotoDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.editPhotoDropActive.set(false);
+  }
+
+  onEditPhotoDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.editPhotoDropActive.set(false);
+    if (this.isSubmitting()) {
+      return;
+    }
+
+    const files = event.dataTransfer?.files;
+    if (!files?.length) {
+      this.editPhotoError.set('Drop a JPEG, PNG or WebP image to select it.');
+      return;
+    }
+
+    if (files.length > 1) {
+      this.editPhotoError.set('Select one student photo at a time.');
+      return;
+    }
+
+    this.selectEditPhoto(files.item(0)!);
+  }
+
+  removeEditSelectedPhoto(): void {
+    if (!this.isSubmitting()) {
+      this.clearEditSelectedPhoto();
+    }
+  }
+
   photoUrl(studentId: string): string | null {
     return this.photoUrls()[studentId] ?? null;
   }
@@ -714,6 +826,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearSelectedPhoto();
+    this.clearEditSelectedPhoto();
     this.photoUrlService.releaseAll();
     this.store.dispatch(StudentsActions.clearPhotoUrls());
   }
@@ -742,6 +855,31 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     this.photoError.set(null);
   }
 
+  private selectEditPhoto(photo: File): void {
+    const message = photoValidationMessage(photo);
+    if (message) {
+      this.editPhotoError.set(message);
+      return;
+    }
+
+    this.clearEditSelectedPhoto();
+    this.editSelectedPhoto.set(photo);
+    this.editPhotoPreviewUrl.set(URL.createObjectURL(photo));
+    this.store.dispatch(StudentsActions.clearFeedback());
+  }
+
+  private clearEditSelectedPhoto(): void {
+    const previewUrl = this.editPhotoPreviewUrl();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    this.editSelectedPhoto.set(null);
+    this.editPhotoPreviewUrl.set(null);
+    this.editPhotoError.set(null);
+    this.editPhotoDropActive.set(false);
+    this.editPhotoUploadStudentId.set(null);
+  }
+
   private completeStudentCreation(): void {
     this.formOpen.set(false);
     this.resetCreateForm();
@@ -750,6 +888,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   private completeStudentEdit(): void {
     this.editingStudent.set(null);
     this.editStudentForm.reset({ studentNo: '', fullName: '', classLevel: 0, guardianPhone: '', deviceUserId: '' });
+    this.clearEditSelectedPhoto();
   }
 
   private completeStudentDeactivation(): void {
