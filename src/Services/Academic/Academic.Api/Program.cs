@@ -49,4 +49,7 @@ app.MapHealthChecks("/health");
 using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<AcademicDbContext>().Database.EnsureCreated();
 
+if (app.Environment.IsDevelopment())
+    app.Services.EnsureAcademicSetupSchema();
+
 app.Run();

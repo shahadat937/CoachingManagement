@@ -18,7 +18,13 @@ export const routes: Routes = [
         data: MODULE_DATA['students'],
         loadChildren: () => import('./features/students/students.routes').then((m) => m.STUDENT_ROUTES),
       },
-      { path: 'academic', title: 'Academic', canActivate: [roleGuard], data: MODULE_DATA['academic'], loadComponent: () => import('./features/workspace/pages/module-page.component').then((m) => m.ModulePageComponent) },
+      {
+        path: 'academic',
+        title: 'Academic',
+        canActivate: [roleGuard],
+        data: MODULE_DATA['academic'],
+        loadChildren: () => import('./features/academic/academic.routes').then((m) => m.ACADEMIC_ROUTES),
+      },
       {
         path: 'attendance',
         title: 'Attendance',
