@@ -50,6 +50,9 @@ using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<AcademicDbContext>().Database.EnsureCreated();
 
 if (app.Environment.IsDevelopment())
+{
     app.Services.EnsureAcademicSetupSchema();
+    await app.Services.SeedAsync(app.Environment, app.Configuration);
+}
 
 app.Run();

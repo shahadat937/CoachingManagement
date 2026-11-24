@@ -20,5 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Services\Academic\Academic.Application\Academic.Application.csproj" />
     <ProjectReference Include="..\..\src\Services\Academic\Academic.Domain\Academic.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Services\Academic\Academic.Infrastructure\Academic.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
