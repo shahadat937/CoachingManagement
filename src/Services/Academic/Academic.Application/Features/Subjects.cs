@@ -15,6 +15,10 @@ public sealed record AcademicBatchResponse(Guid Id, string Name, string? Code, i
     public static AcademicBatchResponse From(AcademicBatch batch) => new(batch.Id, batch.Name, batch.Code, batch.ClassLevel);
 }
 
+public sealed record AcademicSetupResponse(
+    IReadOnlyList<SubjectResponse> Subjects,
+    IReadOnlyList<AcademicBatchResponse> Batches);
+
 public sealed class AcademicInputException(string field, string message) : Exception(message)
 {
     public string Field { get; } = field;
@@ -105,6 +109,126 @@ public sealed class CreateBatchHandler(IAcademicStore store) : IRequestHandler<C
         await store.AddBatchAsync(batch, ct);
         await store.SaveChangesAsync(ct);
         return AcademicBatchResponse.From(batch);
+    }
+}
+
+/// <summary>
+/// Saves all of the class setup changes from one screen submission. Validation and
+/// duplicate checks run before any entity is added, then EF Core persists the
+/// complete set in one SaveChanges call.
+/// </summary>
+public sealed record SaveAcademicSetupCommand(
+    int ClassLevel,
+    IReadOnlyList<AcademicSetupSubjectInput>? Subjects,
+    IReadOnlyList<AcademicSetupBatchInput>? Batches) : IRequest<AcademicSetupResponse>;
+
+public sealed record AcademicSetupSubjectInput(string? Name, string? Code);
+public sealed record AcademicSetupBatchInput(string? Name, string? Code);
+
+public sealed class SaveAcademicSetupHandler(IAcademicStore store)
+    : IRequestHandler<SaveAcademicSetupCommand, AcademicSetupResponse>
+{
+    public async Task<AcademicSetupResponse> Handle(SaveAcademicSetupCommand command, CancellationToken ct)
+    {
+        AcademicInput.ValidateClassLevel(command.ClassLevel);
+
+        var subjects = (command.Subjects ?? [])
+            .Select(item => AcademicInput.ValidateSubject(command.ClassLevel, item.Name, item.Code))
+            .ToArray();
+        var batches = (command.Batches ?? [])
+            .Select(item => AcademicInput.ValidateBatch(command.ClassLevel, item.Name, item.Code))
+            .ToArray();
+
+        if (subjects.Length == 0 && batches.Length == 0)
+            throw new AcademicInputException("setup", "Add at least one subject or batch before saving.");
+
+        ValidateUniqueSubjects(subjects);
+        ValidateUniqueBatches(batches);
+
+        var existingSubjects = await store.ListSubjectsAsync(command.ClassLevel, ct);
+        var existingBatches = await store.ListBatchesAsync(command.ClassLevel, ct);
+        ValidateExistingSubjects(subjects, existingSubjects);
+        ValidateExistingBatches(batches, existingBatches);
+
+        var subjectEntities = subjects
+            .Select(input => new Subject { ClassLevel = input.ClassLevel, Name = input.Name, Code = input.Code })
+            .ToArray();
+        var batchEntities = batches
+            .Select(input => new AcademicBatch { ClassLevel = input.ClassLevel, Name = input.Name, Code = input.Code })
+            .ToArray();
+
+        foreach (var subject in subjectEntities)
+            await store.AddSubjectAsync(subject, ct);
+        foreach (var batch in batchEntities)
+            await store.AddBatchAsync(batch, ct);
+
+        await store.SaveChangesAsync(ct);
+        return new AcademicSetupResponse(
+            subjectEntities.Select(SubjectResponse.From).ToArray(),
+            batchEntities.Select(AcademicBatchResponse.From).ToArray());
+    }
+
+    private static void ValidateUniqueSubjects(IEnumerable<ValidatedSubjectInput> subjects)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var subject in subjects)
+        {
+            if (!names.Add(subject.Name))
+                throw new AcademicConflictException("subjects", "Each subject name can be added only once for the selected class.");
+            if (!codes.Add(subject.Code))
+                throw new AcademicConflictException("subjects", "Each subject code can be added only once for the selected class.");
+        }
+    }
+
+    private static void ValidateUniqueBatches(IEnumerable<ValidatedBatchInput> batches)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var batch in batches)
+        {
+            if (!names.Add(batch.Name))
+                throw new AcademicConflictException("batches", "Each batch name can be added only once for the selected class.");
+            if (batch.Code is not null && !codes.Add(batch.Code))
+                throw new AcademicConflictException("batches", "Each batch code can be added only once for the selected class.");
+        }
+    }
+
+    private static void ValidateExistingSubjects(
+        IEnumerable<ValidatedSubjectInput> subjects,
+        IReadOnlyList<Subject> existingSubjects)
+    {
+        var names = existingSubjects.Select(subject => subject.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var codes = existingSubjects.Select(subject => subject.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var subject in subjects)
+        {
+            if (names.Contains(subject.Name))
+                throw new AcademicConflictException("subjects", "A subject with this name already exists for the selected class.");
+            if (codes.Contains(subject.Code))
+                throw new AcademicConflictException("subjects", "A subject with this code already exists for the selected class.");
+        }
+    }
+
+    private static void ValidateExistingBatches(
+        IEnumerable<ValidatedBatchInput> batches,
+        IReadOnlyList<AcademicBatch> existingBatches)
+    {
+        var names = existingBatches.Select(batch => batch.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var codes = existingBatches
+            .Where(batch => batch.Code is not null)
+            .Select(batch => batch.Code!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var batch in batches)
+        {
+            if (names.Contains(batch.Name))
+                throw new AcademicConflictException("batches", "A batch with this name already exists for the selected class.");
+            if (batch.Code is not null && codes.Contains(batch.Code))
+                throw new AcademicConflictException("batches", "A batch with this code already exists for the selected class.");
+        }
     }
 }
 

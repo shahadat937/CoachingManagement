@@ -7,6 +7,8 @@ import {
   AcademicSubject,
   CreateAcademicBatchRequest,
   CreateAcademicSubjectRequest,
+  SaveAcademicSetupRequest,
+  SaveAcademicSetupResponse,
 } from './academic.models';
 
 @Injectable({ providedIn: 'root' })
@@ -36,5 +38,9 @@ export class AcademicApi {
 
   createBatch(request: CreateAcademicBatchRequest): Observable<AcademicBatch> {
     return this.http.post<AcademicBatch>(`${this.baseUrl}/batches`, request);
+  }
+
+  saveSetup(request: SaveAcademicSetupRequest): Observable<SaveAcademicSetupResponse> {
+    return this.http.post<SaveAcademicSetupResponse>(`${this.baseUrl}/setup`, request);
   }
 }

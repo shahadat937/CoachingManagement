@@ -68,6 +68,91 @@ public class AcademicSetupTests
     }
 
     [Fact]
+    public async Task Bulk_setup_creates_all_subjects_and_batches_with_one_save()
+    {
+        var store = new InMemoryAcademicStore();
+        var handler = new SaveAcademicSetupHandler(store);
+
+        var setup = await handler.Handle(
+            new SaveAcademicSetupCommand(
+                8,
+                [
+                    new AcademicSetupSubjectInput(" General   Mathematics ", " math-08 "),
+                    new AcademicSetupSubjectInput("English", "eng-08"),
+                ],
+                [
+                    new AcademicSetupBatchInput(" Morning ", "m-8"),
+                    new AcademicSetupBatchInput("Evening", null),
+                ]),
+            CancellationToken.None);
+
+        Assert.Equal(2, setup.Subjects.Count);
+        Assert.Equal(2, setup.Batches.Count);
+        Assert.Equal("General Mathematics", setup.Subjects[0].Name);
+        Assert.Equal("MATH-08", setup.Subjects[0].Code);
+        Assert.Equal("Morning", setup.Batches[0].Name);
+        Assert.Equal("M-8", setup.Batches[0].Code);
+        Assert.Equal(2, store.Subjects.Count);
+        Assert.Equal(2, store.Batches.Count);
+        Assert.Equal(1, store.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task Bulk_setup_rejects_duplicates_before_writing_any_records()
+    {
+        var store = new InMemoryAcademicStore();
+        var handler = new SaveAcademicSetupHandler(store);
+
+        var duplicate = await Assert.ThrowsAsync<AcademicConflictException>(() =>
+            handler.Handle(
+                new SaveAcademicSetupCommand(
+                    8,
+                    [
+                        new AcademicSetupSubjectInput("Mathematics", "MATH-08"),
+                        new AcademicSetupSubjectInput(" mathematics ", "ADV-MATH-08"),
+                    ],
+                    [new AcademicSetupBatchInput("Morning", "M-8")]),
+                CancellationToken.None));
+
+        Assert.Equal("subjects", duplicate.Field);
+        Assert.Empty(store.Subjects);
+        Assert.Empty(store.Batches);
+        Assert.Equal(0, store.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task Bulk_setup_rejects_existing_class_records_before_writing_any_records()
+    {
+        var store = new InMemoryAcademicStore();
+        store.Subjects.Add(Subject(8, "Mathematics", "MATH-08"));
+        var handler = new SaveAcademicSetupHandler(store);
+
+        var duplicate = await Assert.ThrowsAsync<AcademicConflictException>(() =>
+            handler.Handle(
+                new SaveAcademicSetupCommand(
+                    8,
+                    [new AcademicSetupSubjectInput("Mathematics", "ADV-MATH-08")],
+                    [new AcademicSetupBatchInput("Morning", "M-8")]),
+                CancellationToken.None));
+
+        Assert.Equal("subjects", duplicate.Field);
+        Assert.Single(store.Subjects);
+        Assert.Empty(store.Batches);
+        Assert.Equal(0, store.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task Bulk_setup_requires_at_least_one_record()
+    {
+        var exception = await Assert.ThrowsAsync<AcademicInputException>(() =>
+            new SaveAcademicSetupHandler(new InMemoryAcademicStore()).Handle(
+                new SaveAcademicSetupCommand(8, [], []),
+                CancellationToken.None));
+
+        Assert.Equal("setup", exception.Field);
+    }
+
+    [Fact]
     public async Task Class_summary_returns_all_levels_with_class_scoped_counts()
     {
         var store = new InMemoryAcademicStore();

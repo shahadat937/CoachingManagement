@@ -4,7 +4,13 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { AuthFacade } from '../../../core/auth/auth.facade';
 import { AcademicApi } from '../data/academic.api';
-import { AcademicBatch, AcademicClassSummary, AcademicSubject } from '../data/academic.models';
+import {
+  AcademicBatch,
+  AcademicClassSummary,
+  AcademicSetupBatchInput,
+  AcademicSetupSubjectInput,
+  AcademicSubject,
+} from '../data/academic.models';
 
 @Component({
   selector: 'app-academic-page',
@@ -19,9 +25,11 @@ import { AcademicBatch, AcademicClassSummary, AcademicSubject } from '../data/ac
     .summary { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 1rem; } .metric { background: #fff; border: 1px solid #e8edf6; border-radius: .95rem; padding: 1rem 1.1rem; } .metric.indigo { border-top: 3px solid #6259e9; } .metric.cyan { border-top: 3px solid #27b9d9; } .metric.violet { border-top: 3px solid #9d73eb; } .metric span { color: #72819a; font-size: .73rem; font-weight: 750; } .metric strong { color: #263954; display: block; font-size: 1.35rem; letter-spacing: -.035em; margin: .45rem 0 .15rem; } .metric small { color: #8a97ab; font-size: .68rem; }
     .setup-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); } .panel { background: #fff; border: 1px solid #e8edf6; border-radius: 1rem; overflow: hidden; } .panel-head { align-items: flex-start; border-bottom: 1px solid #edf0f5; display: flex; gap: 1rem; justify-content: space-between; padding: 1rem 1.15rem; } .panel-head h2 { color: #2d405c; font-size: 1rem; margin: 0; } .panel-head p { color: #8492a7; font-size: .72rem; line-height: 1.4; margin: .26rem 0 0; } .count { background: #f0efff; border-radius: 100px; color: #5c54cf; font-size: .68rem; font-weight: 800; padding: .3rem .5rem; white-space: nowrap; }
     .records { list-style: none; margin: 0; padding: 0; } .record { align-items: center; border-bottom: 1px solid #f0f2f7; display: flex; gap: .8rem; justify-content: space-between; padding: .78rem 1.15rem; } .record:last-child { border-bottom: 0; } .record-title { color: #3c506c; display: block; font-size: .8rem; font-weight: 750; } .record-code { color: #8997aa; display: block; font-size: .68rem; margin-top: .16rem; } .tag { background: #edf8f4; border-radius: 100px; color: #168362; font-size: .66rem; font-weight: 800; padding: .28rem .47rem; white-space: nowrap; } .empty { color: #8492a7; font-size: .78rem; line-height: 1.45; margin: 0; padding: 1.2rem 1.15rem; text-align: center; }
+    .drafts { background: #fffdf3; border-bottom: 1px solid #f5ebbd; border-top: 1px solid #f5ebbd; list-style: none; margin: 0; padding: 0; } .draft-label { color: #927331; display: block; font-size: .65rem; font-weight: 800; letter-spacing: .04em; padding: .55rem 1.15rem 0; text-transform: uppercase; } .draft { align-items: center; display: flex; gap: .8rem; justify-content: space-between; padding: .62rem 1.15rem; } .draft:last-child { padding-bottom: .78rem; } .draft .record-title { color: #69572e; } .draft .record-code { color: #9d8c63; } .queued-tag { background: #fff3c9; border-radius: 100px; color: #97752d; font-size: .63rem; font-weight: 800; padding: .28rem .45rem; white-space: nowrap; } .remove { background: transparent; border: 1px solid #e6c877; border-radius: .48rem; color: #927331; cursor: pointer; font: inherit; font-size: .67rem; font-weight: 800; padding: .35rem .48rem; } .remove:hover { background: #fff3c9; }
     .entry { background: #fafbfe; border-top: 1px solid #edf0f5; display: grid; gap: .75rem; padding: .9rem 1.15rem 1.05rem; } .entry h3 { color: #40536e; font-size: .76rem; margin: 0; } .field-grid { display: grid; gap: .65rem; grid-template-columns: minmax(0, 1.4fr) minmax(6rem, .8fr); } .field { display: grid; gap: .32rem; } .field label { color: #63738b; font-size: .68rem; font-weight: 800; } .field input { background: #fff; border: 1px solid #dce4f0; border-radius: .6rem; color: #30435f; font: inherit; font-size: .76rem; min-width: 0; outline: 0; padding: .62rem .68rem; width: 100%; } .field input:focus { border-color: #7169eb; box-shadow: 0 0 0 3px rgba(113, 105, 235, .12); } .field input.invalid { border-color: #db6875; } .field-error { color: #c54c5a; font-size: .65rem; line-height: 1.25; } .entry-actions { align-items: center; display: flex; gap: .65rem; justify-content: flex-end; } .hint { color: #8997aa; font-size: .66rem; line-height: 1.35; margin-right: auto; } .primary { background: #6159e9; border: 0; border-radius: .62rem; box-shadow: 0 8px 18px rgba(91, 80, 224, .18); color: #fff; cursor: pointer; font: inherit; font-size: .73rem; font-weight: 800; padding: .66rem .78rem; } .primary:disabled { cursor: not-allowed; opacity: .6; } .read-only { background: #f8f9fc; border-top: 1px solid #edf0f5; color: #7c8ba0; font-size: .7rem; line-height: 1.4; margin: 0; padding: .8rem 1.15rem; }
+    .save-all { align-items: center; background: linear-gradient(110deg, #f2f1ff, #f7f6ff); border: 1px solid #dcd9ff; border-radius: 1rem; display: flex; gap: 1rem; justify-content: space-between; margin-top: 1rem; padding: .9rem 1rem; } .save-all strong { color: #413b9e; display: block; font-size: .82rem; } .save-all p { color: #6f7394; font-size: .7rem; margin: .22rem 0 0; } .save-all .primary { white-space: nowrap; }
     .loading { align-items: center; color: #78879c; display: flex; font-size: .73rem; gap: .45rem; } .loading i { animation: pulse 1s ease-in-out infinite alternate; background: #736be9; border-radius: 50%; height: .45rem; width: .45rem; } @keyframes pulse { from { opacity: .35; } to { opacity: 1; } }
-    @media (max-width: 850px) { .class-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .setup-grid { grid-template-columns: 1fr; } } @media (max-width: 650px) { .page-head, .class-picker-head { align-items: stretch; flex-direction: column; } .class-caption { text-align: left; } .summary { grid-template-columns: 1fr; } .class-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .field-grid { grid-template-columns: 1fr; } } @media (max-width: 400px) { .class-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .entry-actions { align-items: stretch; flex-direction: column; } .hint { margin-right: 0; } .primary { width: 100%; } }
+    @media (max-width: 850px) { .class-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .setup-grid { grid-template-columns: 1fr; } } @media (max-width: 650px) { .page-head, .class-picker-head, .save-all { align-items: stretch; flex-direction: column; } .class-caption { text-align: left; } .summary { grid-template-columns: 1fr; } .class-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .field-grid { grid-template-columns: 1fr; } } @media (max-width: 400px) { .class-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .entry-actions { align-items: stretch; flex-direction: column; } .hint { margin-right: 0; } .primary { width: 100%; } }
   `,
   template: `
     <section class="page-head">
@@ -58,43 +66,66 @@ import { AcademicBatch, AcademicClassSummary, AcademicSubject } from '../data/ac
 
     <section class="setup-grid">
       <article class="panel" aria-labelledby="subjects-title">
-        <header class="panel-head"><div><h2 id="subjects-title">Class {{ selectedClassLevel() }} subjects</h2><p>Subjects belong to the class, not to an individual batch.</p></div><span class="count">{{ subjects().length }}</span></header>
+        <header class="panel-head"><div><h2 id="subjects-title">Class {{ selectedClassLevel() }} subjects</h2><p>Subjects belong to the class, not to an individual batch.</p></div><span class="count">{{ subjects().length }} saved</span></header>
         @if (subjects().length) {
           <ul class="records">
             @for (subject of subjects(); track subject.id) { <li class="record"><span><strong class="record-title">{{ subject.name }}</strong><small class="record-code">{{ subject.code }}</small></span><span class="tag">Class {{ subject.classLevel }}</span></li> }
           </ul>
         } @else { <p class="empty">No subjects have been added for this class yet.</p> }
+        @if (pendingSubjects().length) {
+          <ul class="drafts" aria-label="Queued subjects">
+            <li class="draft-label">Queued for one-click save ({{ pendingSubjects().length }})</li>
+            @for (subject of pendingSubjects(); track subject.code; let index = $index) {
+              <li class="draft"><span><strong class="record-title">{{ subject.name }}</strong><small class="record-code">{{ subject.code }}</small></span><span><span class="queued-tag">Not saved</span> <button class="remove" type="button" (click)="removeQueuedSubject(index)" [disabled]="saving()">Remove</button></span></li>
+            }
+          </ul>
+        }
         @if (canManage()) {
-          <form class="entry" [formGroup]="subjectForm" (ngSubmit)="saveSubject()" novalidate>
-            <h3>Add a subject</h3>
+          <form class="entry" [formGroup]="subjectForm" (ngSubmit)="queueSubject()" novalidate>
+            <h3>Add a subject to the save list</h3>
             <div class="field-grid">
               <div class="field"><label for="subject-name">Subject name</label><input id="subject-name" formControlName="name" maxlength="120" placeholder="e.g. General Mathematics" [class.invalid]="subjectInvalid('name')" />@if (subjectInvalid('name')) { <small class="field-error">Enter a subject name.</small> }</div>
               <div class="field"><label for="subject-code">Code</label><input id="subject-code" formControlName="code" maxlength="32" placeholder="MATH-08" [class.invalid]="subjectInvalid('code')" />@if (subjectInvalid('code')) { <small class="field-error">Use letters, numbers, hyphens, or underscores only.</small> }</div>
             </div>
-            <div class="entry-actions"><span class="hint">Added to Class {{ selectedClassLevel() }}.</span><button class="primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Add subject' }}</button></div>
+            <div class="entry-actions"><span class="hint">Queue all subjects, then save them once.</span><button class="primary" type="submit" [disabled]="saving()">Add to list</button></div>
           </form>
         } @else { <p class="read-only">You can view subjects. An administrator can add or change academic setup.</p> }
       </article>
 
       <article class="panel" aria-labelledby="batches-title">
-        <header class="panel-head"><div><h2 id="batches-title">Class {{ selectedClassLevel() }} batches</h2><p>Use batches to organise multiple groups for the same class.</p></div><span class="count">{{ batches().length }}</span></header>
+        <header class="panel-head"><div><h2 id="batches-title">Class {{ selectedClassLevel() }} batches</h2><p>Use batches to organise multiple groups for the same class.</p></div><span class="count">{{ batches().length }} saved</span></header>
         @if (batches().length) {
           <ul class="records">
             @for (batch of batches(); track batch.id) { <li class="record"><span><strong class="record-title">{{ batch.name }}</strong><small class="record-code">{{ batch.code || 'No batch code' }}</small></span><span class="tag">Class {{ batch.classLevel }}</span></li> }
           </ul>
         } @else { <p class="empty">No batches have been added for this class yet.</p> }
+        @if (pendingBatches().length) {
+          <ul class="drafts" aria-label="Queued batches">
+            <li class="draft-label">Queued for one-click save ({{ pendingBatches().length }})</li>
+            @for (batch of pendingBatches(); track batch.name; let index = $index) {
+              <li class="draft"><span><strong class="record-title">{{ batch.name }}</strong><small class="record-code">{{ batch.code || 'No batch code' }}</small></span><span><span class="queued-tag">Not saved</span> <button class="remove" type="button" (click)="removeQueuedBatch(index)" [disabled]="saving()">Remove</button></span></li>
+            }
+          </ul>
+        }
         @if (canManage()) {
-          <form class="entry" [formGroup]="batchForm" (ngSubmit)="saveBatch()" novalidate>
-            <h3>Add a batch</h3>
+          <form class="entry" [formGroup]="batchForm" (ngSubmit)="queueBatch()" novalidate>
+            <h3>Add a batch to the save list</h3>
             <div class="field-grid">
               <div class="field"><label for="batch-name">Batch name</label><input id="batch-name" formControlName="name" maxlength="100" placeholder="e.g. Morning batch" [class.invalid]="batchInvalid('name')" />@if (batchInvalid('name')) { <small class="field-error">Enter a batch name.</small> }</div>
               <div class="field"><label for="batch-code">Code <span>(optional)</span></label><input id="batch-code" formControlName="code" maxlength="32" placeholder="MOR-08" [class.invalid]="batchInvalid('code')" />@if (batchInvalid('code')) { <small class="field-error">Use letters, numbers, hyphens, or underscores only.</small> }</div>
             </div>
-            <div class="entry-actions"><span class="hint">Several batches can belong to Class {{ selectedClassLevel() }}.</span><button class="primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Add batch' }}</button></div>
+            <div class="entry-actions"><span class="hint">Several batches can belong to Class {{ selectedClassLevel() }}.</span><button class="primary" type="submit" [disabled]="saving()">Add to list</button></div>
           </form>
         } @else { <p class="read-only">You can view batches. An administrator can add or change academic setup.</p> }
       </article>
     </section>
+
+    @if (canManage() && pendingItemCount()) {
+      <section class="save-all" aria-live="polite">
+        <div><strong>{{ pendingItemCount() }} item{{ pendingItemCount() === 1 ? '' : 's' }} ready to save</strong><p>{{ pendingSubjects().length }} subject{{ pendingSubjects().length === 1 ? '' : 's' }} and {{ pendingBatches().length }} batch{{ pendingBatches().length === 1 ? '' : 'es' }} will be added to Class {{ selectedClassLevel() }}.</p></div>
+        <button class="primary" type="button" (click)="saveAll()" [disabled]="saving()">{{ saving() ? 'Saving all...' : 'Save all' }}</button>
+      </section>
+    }
   `,
 })
 export class AcademicPageComponent implements OnInit {
@@ -108,6 +139,9 @@ export class AcademicPageComponent implements OnInit {
   readonly classSummaries = signal<AcademicClassSummary[]>(this.classLevels.map((classLevel) => ({ classLevel, subjectCount: 0, batchCount: 0 })));
   readonly subjects = signal<AcademicSubject[]>([]);
   readonly batches = signal<AcademicBatch[]>([]);
+  readonly pendingSubjects = signal<AcademicSetupSubjectInput[]>([]);
+  readonly pendingBatches = signal<AcademicSetupBatchInput[]>([]);
+  readonly pendingItemCount = computed(() => this.pendingSubjects().length + this.pendingBatches().length);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
@@ -129,6 +163,12 @@ export class AcademicPageComponent implements OnInit {
 
   selectClass(level: number): void {
     if (level === this.selectedClassLevel() || this.saving()) {
+      return;
+    }
+
+    if (this.pendingItemCount()) {
+      this.clearFeedback();
+      this.error.set(`Save or remove the ${this.pendingItemCount()} queued item${this.pendingItemCount() === 1 ? '' : 's'} before changing classes.`);
       return;
     }
 
@@ -173,7 +213,7 @@ export class AcademicPageComponent implements OnInit {
     });
   }
 
-  saveSubject(): void {
+  queueSubject(): void {
     if (!this.canManage() || this.saving()) {
       return;
     }
@@ -184,27 +224,23 @@ export class AcademicPageComponent implements OnInit {
     }
 
     const value = this.subjectForm.getRawValue();
-    this.saving.set(true);
+    const subject: AcademicSetupSubjectInput = {
+      name: normalizeName(value.name),
+      code: normalizeCode(value.code),
+    };
+
+    if (this.subjectAlreadyExists(subject)) {
+      this.clearFeedback();
+      this.error.set('This subject name or code is already saved or queued for the selected class.');
+      return;
+    }
+
+    this.pendingSubjects.update((items) => [...items, subject]);
+    this.subjectForm.reset({ name: '', code: '' });
     this.clearFeedback();
-    this.api.createSubject({
-      classLevel: this.selectedClassLevel(),
-      name: value.name.trim(),
-      code: value.code.trim(),
-    }).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.subjectForm.reset({ name: '', code: '' });
-        this.success.set(`Subject added to Class ${this.selectedClassLevel()}.`);
-        this.refresh();
-      },
-      error: (error: unknown) => {
-        this.saving.set(false);
-        this.error.set(readApiError(error, 'Unable to add this subject.'));
-      },
-    });
   }
 
-  saveBatch(): void {
+  queueBatch(): void {
     if (!this.canManage() || this.saving()) {
       return;
     }
@@ -215,22 +251,56 @@ export class AcademicPageComponent implements OnInit {
     }
 
     const value = this.batchForm.getRawValue();
+    const batch: AcademicSetupBatchInput = {
+      name: normalizeName(value.name),
+      code: normalizeCode(value.code) || null,
+    };
+
+    if (this.batchAlreadyExists(batch)) {
+      this.clearFeedback();
+      this.error.set('This batch name or code is already saved or queued for the selected class.');
+      return;
+    }
+
+    this.pendingBatches.update((items) => [...items, batch]);
+    this.batchForm.reset({ name: '', code: '' });
+    this.clearFeedback();
+  }
+
+  removeQueuedSubject(index: number): void {
+    if (!this.saving()) {
+      this.pendingSubjects.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
+    }
+  }
+
+  removeQueuedBatch(index: number): void {
+    if (!this.saving()) {
+      this.pendingBatches.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
+    }
+  }
+
+  saveAll(): void {
+    if (!this.canManage() || this.saving() || !this.pendingItemCount()) {
+      return;
+    }
+
+    const subjects = this.pendingSubjects();
+    const batches = this.pendingBatches();
+    const classLevel = this.selectedClassLevel();
     this.saving.set(true);
     this.clearFeedback();
-    this.api.createBatch({
-      classLevel: this.selectedClassLevel(),
-      name: value.name.trim(),
-      code: value.code.trim() || null,
-    }).subscribe({
-      next: () => {
+    this.api.saveSetup({ classLevel, subjects, batches }).subscribe({
+      next: (saved) => {
         this.saving.set(false);
-        this.batchForm.reset({ name: '', code: '' });
-        this.success.set(`Batch added to Class ${this.selectedClassLevel()}.`);
+        this.pendingSubjects.set([]);
+        this.pendingBatches.set([]);
+        const count = saved.subjects.length + saved.batches.length;
+        this.success.set(`${count} academic setup item${count === 1 ? ' was' : 's were'} saved to Class ${classLevel}.`);
         this.refresh();
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.error.set(readApiError(error, 'Unable to add this batch.'));
+        this.error.set(readApiError(error, 'Unable to save the queued academic setup. Your queued items are still available to retry.'));
       },
     });
   }
@@ -253,6 +323,18 @@ export class AcademicPageComponent implements OnInit {
   clearFeedback(): void {
     this.error.set(null);
     this.success.set(null);
+  }
+
+  private subjectAlreadyExists(candidate: AcademicSetupSubjectInput): boolean {
+    return [...this.subjects(), ...this.pendingSubjects()].some((subject) =>
+      nameKey(subject.name) === nameKey(candidate.name)
+      || normalizeCode(subject.code) === candidate.code);
+  }
+
+  private batchAlreadyExists(candidate: AcademicSetupBatchInput): boolean {
+    return [...this.batches(), ...this.pendingBatches()].some((batch) =>
+      nameKey(batch.name) === nameKey(candidate.name)
+      || (candidate.code !== null && batch.code !== null && normalizeCode(batch.code) === candidate.code));
   }
 
   private withAllClassLevels(summaries: AcademicClassSummary[]): AcademicClassSummary[] {
@@ -306,4 +388,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function normalizeName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function nameKey(value: string): string {
+  return normalizeName(value).toUpperCase();
+}
+
+function normalizeCode(value: string): string {
+  return value.trim().toUpperCase();
 }

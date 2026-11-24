@@ -29,3 +29,24 @@ export interface CreateAcademicBatchRequest {
   name: string;
   code: string | null;
 }
+
+export interface AcademicSetupSubjectInput {
+  name: string;
+  code: string;
+}
+
+export interface AcademicSetupBatchInput {
+  name: string;
+  code: string | null;
+}
+
+export interface SaveAcademicSetupRequest {
+  classLevel: number;
+  subjects: AcademicSetupSubjectInput[];
+  batches: AcademicSetupBatchInput[];
+}
+
+export interface SaveAcademicSetupResponse {
+  subjects: AcademicSubject[];
+  batches: AcademicBatch[];
+}
