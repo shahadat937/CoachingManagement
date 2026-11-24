@@ -91,6 +91,7 @@ public class StudentCreationTests
     private sealed class InMemoryStudentStore : IStudentStore
     {
         public List<Student> Students { get; init; } = [];
+        public List<StudentPhoto> Photos { get; } = [];
 
         public Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(Students.SingleOrDefault(student => student.Id == id));
@@ -104,9 +105,34 @@ public class StudentCreationTests
         public Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Student>>(Students);
 
+        public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos.ToDictionary(
+                photo => photo.StudentId,
+                photo => new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt)));
+
+        public Task<StudentPhotoMetadata?> GetPhotoMetadataAsync(Guid studentId, CancellationToken ct = default)
+        {
+            var photo = Photos.SingleOrDefault(candidate => candidate.StudentId == studentId);
+            return Task.FromResult(photo is null
+                ? null
+                : new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt));
+        }
+
+        public Task<StudentPhoto?> GetPhotoAsync(Guid studentId, CancellationToken ct = default) =>
+            Task.FromResult(Photos.SingleOrDefault(photo => photo.StudentId == studentId));
+
+        public Task<StudentPhoto?> GetPhotoForUpdateAsync(Guid studentId, CancellationToken ct = default) =>
+            Task.FromResult(Photos.SingleOrDefault(photo => photo.StudentId == studentId));
+
         public Task AddAsync(Student student, CancellationToken ct = default)
         {
             Students.Add(student);
+            return Task.CompletedTask;
+        }
+
+        public Task AddPhotoAsync(StudentPhoto photo, CancellationToken ct = default)
+        {
+            Photos.Add(photo);
             return Task.CompletedTask;
         }
 

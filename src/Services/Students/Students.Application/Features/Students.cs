@@ -11,16 +11,20 @@ public sealed record StudentResponse(
     string FullName,
     int ClassLevel,
     string GuardianPhone,
-    string? DeviceUserId)
+    string? DeviceUserId,
+    bool HasPhoto,
+    DateTimeOffset? PhotoUpdatedAt)
 {
-    public static StudentResponse From(Student student) => new(
+    public static StudentResponse From(Student student, StudentPhotoMetadata? photo = null) => new(
         student.Id,
         student.CreatedAt,
         student.StudentNo,
         student.FullName,
         student.ClassLevel,
         student.GuardianPhone,
-        student.DeviceUserId);
+        student.DeviceUserId,
+        photo is not null,
+        photo?.UpdatedAt);
 }
 
 public sealed class StudentInputException(string field, string message) : Exception(message)
@@ -40,8 +44,16 @@ public record ListStudentsQuery : IRequest<IReadOnlyList<StudentResponse>>;
 
 public class ListStudentsHandler(IStudentStore store) : IRequestHandler<ListStudentsQuery, IReadOnlyList<StudentResponse>>
 {
-    public async Task<IReadOnlyList<StudentResponse>> Handle(ListStudentsQuery query, CancellationToken ct) =>
-        (await store.ListAsync(ct)).Select(StudentResponse.From).ToList();
+    public async Task<IReadOnlyList<StudentResponse>> Handle(ListStudentsQuery query, CancellationToken ct)
+    {
+        var students = await store.ListAsync(ct);
+        var photos = await store.ListPhotoMetadataAsync(ct);
+        return students.Select(student =>
+        {
+            photos.TryGetValue(student.Id, out var photo);
+            return StudentResponse.From(student, photo);
+        }).ToList();
+    }
 }
 
 public record GetStudentQuery(Guid Id) : IRequest<StudentResponse?>;
@@ -51,7 +63,62 @@ public class GetStudentHandler(IStudentStore store) : IRequestHandler<GetStudent
     public async Task<StudentResponse?> Handle(GetStudentQuery query, CancellationToken ct)
     {
         var student = await store.GetByIdAsync(query.Id, ct);
-        return student is null ? null : StudentResponse.From(student);
+        if (student is null)
+            return null;
+
+        return StudentResponse.From(student, await store.GetPhotoMetadataAsync(query.Id, ct));
+    }
+}
+
+public record UploadStudentPhotoCommand(Guid StudentId, string? DeclaredContentType, byte[] Content) : IRequest<StudentPhotoMetadata?>;
+
+public class UploadStudentPhotoHandler(IStudentStore store) : IRequestHandler<UploadStudentPhotoCommand, StudentPhotoMetadata?>
+{
+    public async Task<StudentPhotoMetadata?> Handle(UploadStudentPhotoCommand command, CancellationToken ct)
+    {
+        var upload = StudentPhotoUploadValidation.Validate(command.DeclaredContentType, command.Content);
+        if (await store.GetByIdAsync(command.StudentId, ct) is null)
+            return null;
+
+        var now = DateTimeOffset.UtcNow;
+        var photo = await store.GetPhotoForUpdateAsync(command.StudentId, ct);
+        if (photo is null)
+        {
+            photo = new StudentPhoto
+            {
+                StudentId = command.StudentId,
+                Content = upload.Content,
+                ContentType = upload.ContentType,
+                SizeBytes = upload.Content.LongLength,
+                UpdatedAt = now,
+            };
+            await store.AddPhotoAsync(photo, ct);
+        }
+        else
+        {
+            photo.Content = upload.Content;
+            photo.ContentType = upload.ContentType;
+            photo.SizeBytes = upload.Content.LongLength;
+            photo.UpdatedAt = now;
+        }
+
+        await store.SaveChangesAsync(ct);
+        return new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt);
+    }
+}
+
+public record GetStudentPhotoQuery(Guid StudentId) : IRequest<StudentPhotoContent?>;
+
+public class GetStudentPhotoHandler(IStudentStore store) : IRequestHandler<GetStudentPhotoQuery, StudentPhotoContent?>
+{
+    public async Task<StudentPhotoContent?> Handle(GetStudentPhotoQuery query, CancellationToken ct)
+    {
+        var photo = await store.GetPhotoAsync(query.StudentId, ct);
+        return photo is null
+            ? null
+            : new StudentPhotoContent(
+                photo.Content,
+                new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt));
     }
 }
 

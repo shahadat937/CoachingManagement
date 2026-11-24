@@ -6,6 +6,8 @@ export interface StudentsState {
   students: Student[];
   loading: boolean;
   saving: boolean;
+  uploadingPhotoId: string | null;
+  photoUrls: Record<string, string>;
   error: string | null;
   success: string | null;
 }
@@ -14,6 +16,8 @@ const initialState: StudentsState = {
   students: [],
   loading: false,
   saving: false,
+  uploadingPhotoId: null,
+  photoUrls: {},
   error: null,
   success: null,
 };
@@ -33,6 +37,28 @@ export const studentsFeature = createFeature({
       success: `${student.fullName} was added to the student directory.`,
     })),
     on(A.createFailure, (state, { error }) => ({ ...state, saving: false, error })),
+    on(A.uploadPhoto, (state, { studentId }) => ({ ...state, uploadingPhotoId: studentId, error: null, success: null })),
+    on(A.uploadPhotoSuccess, (state, { studentId, metadata }) => {
+      const student = state.students.find((item) => item.id === studentId);
+      return {
+        ...state,
+        students: state.students.map((item) => item.id === studentId
+          ? { ...item, hasPhoto: true, photoUpdatedAt: metadata.updatedAt }
+          : item),
+        uploadingPhotoId: null,
+        success: `The photo for ${student?.fullName ?? 'this student'} was saved.`,
+      };
+    }),
+    on(A.uploadPhotoFailure, (state, { studentId, error }) => ({
+      ...state,
+      uploadingPhotoId: state.uploadingPhotoId === studentId ? null : state.uploadingPhotoId,
+      error,
+    })),
+    on(A.loadPhotoSuccess, (state, { studentId, objectUrl }) => ({
+      ...state,
+      photoUrls: { ...state.photoUrls, [studentId]: objectUrl },
+    })),
+    on(A.clearPhotoUrls, (state) => ({ ...state, photoUrls: {} })),
     on(A.clearFeedback, (state) => ({ ...state, error: null, success: null })),
   ),
 });
@@ -41,6 +67,8 @@ export const {
   selectStudents,
   selectLoading,
   selectSaving,
+  selectUploadingPhotoId,
+  selectPhotoUrls,
   selectError,
   selectSuccess,
 } = studentsFeature;

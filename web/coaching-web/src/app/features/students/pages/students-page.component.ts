@@ -1,16 +1,19 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
+import { StudentPhotoUrls } from '../data/student-photo-urls.service';
 import { StudentsActions } from '../store/students.actions';
 import {
   selectError,
   selectLoading,
+  selectPhotoUrls,
   selectSaving,
   selectStudents,
   selectSuccess,
+  selectUploadingPhotoId,
 } from '../store/students.reducer';
 
 @Component({
@@ -25,17 +28,18 @@ import {
     h1 { color: #162945; font-size: clamp(1.55rem, 3vw, 2.1rem); letter-spacing: -.045em; line-height: 1.08; margin: 0; }
     .description { color: #708099; font-size: .92rem; line-height: 1.55; margin: .55rem 0 0; max-width: 43rem; }
     .primary { align-items: center; background: #6159e9; border: 0; border-radius: .72rem; box-shadow: 0 10px 22px rgba(91, 80, 224, .22); color: #fff; cursor: pointer; display: inline-flex; font: inherit; font-size: .82rem; font-weight: 750; gap: .42rem; justify-content: center; padding: .78rem 1rem; white-space: nowrap; }
-    .primary:hover:not(:disabled) { background: #544ce0; } .primary:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(97, 89, 233, .28); outline-offset: 2px; } button:disabled { cursor: default; opacity: .6; }
+    .primary:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(97, 89, 233, .28); outline-offset: 2px; } button:disabled { cursor: default; opacity: .6; }
     .metrics { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 1rem; }
     .metric { background: #fff; border: 1px solid #e8edf6; border-radius: .95rem; padding: 1rem 1.1rem; } .metric.indigo { border-top: 3px solid #6259e9; } .metric.cyan { border-top: 3px solid #27b9d9; } .metric.violet { border-top: 3px solid #9d73eb; }
     .metric span { color: #72819a; font-size: .75rem; font-weight: 700; } .metric strong { color: #263954; display: block; font-size: 1.35rem; letter-spacing: -.035em; margin: .48rem 0 .18rem; } .metric small { color: #8a97ab; font-size: .7rem; }
     .notice { align-items: flex-start; border: 1px solid; border-radius: .78rem; display: flex; font-size: .8rem; gap: .7rem; justify-content: space-between; margin: 0 0 1rem; padding: .78rem .92rem; } .notice span { line-height: 1.45; } .notice.error { background: #fff4f4; border-color: #ffd7dc; color: #ad4450; } .notice.success { background: #edfaf5; border-color: #ccefdc; color: #187654; } .notice button { background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; font-size: 1rem; line-height: 1; padding: 0; }
     .workspace { background: #fff; border: 1px solid #e8edf6; border-radius: 1rem; overflow: hidden; } .workspace-top { align-items: center; display: flex; gap: 1rem; justify-content: space-between; padding: 1.05rem 1.2rem; } .workspace-top h2 { color: #2b3e59; font-size: 1rem; letter-spacing: -.02em; margin: 0; } .workspace-top p { color: #8795a9; font-size: .72rem; margin: .25rem 0 0; }
     .search { align-items: center; background: #f5f7fb; border: 1px solid #e9edf5; border-radius: .65rem; color: #8795aa; display: flex; gap: .45rem; padding: .5rem .65rem; width: min(100%, 17rem); } .search svg { fill: none; height: .95rem; stroke: currentColor; stroke-width: 2; width: .95rem; } .search input { background: transparent; border: 0; color: #344762; font: inherit; font-size: .76rem; min-width: 0; outline: 0; width: 100%; }
-    .table-wrap { overflow-x: auto; } table { border-collapse: collapse; min-width: 44rem; width: 100%; } th { background: #fafbfe; border-bottom: 1px solid #e9edf5; color: #77869d; font-size: .68rem; font-weight: 800; letter-spacing: .05em; padding: .72rem 1.1rem; text-align: left; text-transform: uppercase; } td { border-bottom: 1px solid #eef1f6; color: #445570; font-size: .78rem; padding: .92rem 1.1rem; white-space: nowrap; } tr:last-child td { border-bottom: 0; } .student-name { color: #2f415d; font-weight: 750; } .student-number { color: #635be8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; font-weight: 700; } .muted { color: #8290a5; } .device { background: #f1efff; border-radius: 100px; color: #655cdb; display: inline-flex; font-size: .67rem; font-weight: 750; padding: .25rem .5rem; }
+    .table-wrap { overflow-x: auto; } table { border-collapse: collapse; min-width: 44rem; width: 100%; } th { background: #fafbfe; border-bottom: 1px solid #e9edf5; color: #77869d; font-size: .68rem; font-weight: 800; letter-spacing: .05em; padding: .72rem 1.1rem; text-align: left; text-transform: uppercase; } td { border-bottom: 1px solid #eef1f6; color: #445570; font-size: .78rem; padding: .92rem 1.1rem; white-space: nowrap; } tr:last-child td { border-bottom: 0; } .student-name { color: #2f415d; font-weight: 750; } .student-identity { align-items: center; display: flex; gap: .6rem; } .avatar { align-items: center; background: linear-gradient(135deg, #eeeefe, #dceff7); border-radius: 50%; color: #5d58c9; display: inline-flex; font-weight: 800; height: 2rem; justify-content: center; overflow: hidden; width: 2rem; } .avatar img { height: 100%; object-fit: cover; width: 100%; } .student-number { color: #635be8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; font-weight: 700; } .muted { color: #8290a5; } .device { background: #f1efff; border-radius: 100px; color: #655cdb; display: inline-flex; font-size: .67rem; font-weight: 750; padding: .25rem .5rem; }
     .footer { align-items: center; border-top: 1px solid #eef1f6; color: #8391a5; display: flex; font-size: .72rem; justify-content: space-between; padding: .8rem 1.2rem; } .endpoint { color: #665eea; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .68rem; } .empty { color: #8492a7; font-size: .82rem; padding: 2.4rem 1.2rem; text-align: center; } .empty strong { color: #40536e; display: block; font-size: .92rem; margin-bottom: .3rem; }
     .dialog-backdrop { align-items: stretch; background: rgba(18, 32, 55, .45); display: flex; justify-content: flex-end; inset: 0; padding: 0; position: fixed; z-index: 30; } .dialog { background: #fff; box-shadow: -16px 0 44px rgba(20, 36, 62, .2); display: flex; flex-direction: column; max-width: 31rem; overflow-y: auto; padding: 1.3rem; width: min(100%, 31rem); } .dialog-head { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.35rem; } .dialog-head h2 { color: #20334f; font-size: 1.2rem; letter-spacing: -.03em; margin: .15rem 0 0; } .dialog-head p { color: #78879e; font-size: .77rem; line-height: 1.45; margin: .4rem 0 0; } .close { align-items: center; background: #f4f6fa; border: 0; border-radius: .55rem; color: #63738c; cursor: pointer; display: inline-flex; font-size: 1.18rem; height: 2rem; justify-content: center; width: 2rem; }
-    form { display: grid; gap: 1rem; } .field { display: grid; gap: .42rem; } .field label { color: #40536e; font-size: .76rem; font-weight: 750; } .optional { color: #91a0b2; font-size: .68rem; font-weight: 600; } .field input, .field select { background: #fff; border: 1px solid #dce4f0; border-radius: .62rem; box-sizing: border-box; color: #30435f; font: inherit; font-size: .84rem; padding: .7rem .75rem; width: 100%; } .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #71819a 50%), linear-gradient(135deg, #71819a 50%, transparent 50%); background-position: calc(100% - 15px) calc(50% - 2px), calc(100% - 10px) calc(50% - 2px); background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; } .field input::placeholder { color: #a7b1bf; } .field input.invalid, .field select.invalid { border-color: #df7180; } .help, .field-error { font-size: .7rem; line-height: 1.35; margin: 0; } .help { color: #8997aa; } .field-error { color: #c54c5a; }
+    form { display: grid; gap: 1rem; } .field { display: grid; gap: .42rem; } .field label, .photo-label { color: #40536e; font-size: .76rem; font-weight: 750; } .optional { color: #91a0b2; font-size: .68rem; font-weight: 600; } .field input, .field select { background: #fff; border: 1px solid #dce4f0; border-radius: .62rem; box-sizing: border-box; color: #30435f; font: inherit; font-size: .84rem; padding: .7rem .75rem; width: 100%; } .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #71819a 50%), linear-gradient(135deg, #71819a 50%, transparent 50%); background-position: calc(100% - 15px) calc(50% - 2px), calc(100% - 10px) calc(50% - 2px); background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; } .field input::placeholder { color: #a7b1bf; } .field input.invalid, .field select.invalid { border-color: #df7180; } .help, .field-error { font-size: .7rem; line-height: 1.35; margin: 0; } .help { color: #8997aa; } .field-error { color: #c54c5a; }
+    .photo-field { display: grid; gap: .5rem; } .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; } .photo-dropzone { align-items: center; background: #fafbff; border: 1px dashed #bfc8ed; border-radius: .8rem; cursor: pointer; display: flex; gap: .8rem; padding: .85rem; } .photo-dropzone:hover, .photo-dropzone.dragging { background: #f2f1ff; border-color: #7169eb; color: #5750c7; } .photo-dropzone svg { fill: none; flex: 0 0 auto; height: 1.5rem; stroke: currentColor; stroke-width: 1.8; width: 1.5rem; } .photo-dropzone strong { color: #465a78; display: block; font-size: .77rem; } .photo-dropzone span { display: block; font-size: .68rem; line-height: 1.35; } .photo-preview { align-items: center; background: #f8faff; border: 1px solid #e2e8f5; border-radius: .8rem; display: flex; gap: .8rem; padding: .7rem; } .preview-image { background: #e9edfa; border-radius: .58rem; height: 3.4rem; object-fit: cover; width: 3.4rem; } .preview-details { min-width: 0; } .preview-details strong { color: #40536e; display: block; font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .preview-details span { color: #8694a9; display: block; font-size: .68rem; margin-top: .18rem; } .preview-actions { display: flex; gap: .35rem; margin-left: auto; } .text-button { background: transparent; border: 0; color: #6159e9; cursor: pointer; font: inherit; font-weight: 800; padding: .3rem; } .text-button.danger { color: #bd5964; } .photo-error, .form-error { background: #fff4f4; border: 1px solid #ffd7dc; border-radius: .55rem; color: #ad4450; font-size: .7rem; line-height: 1.4; margin: 0; padding: .52rem .62rem; }
     .form-actions { align-items: center; border-top: 1px solid #edf0f5; display: flex; gap: .65rem; justify-content: flex-end; margin-top: .35rem; padding-top: 1rem; } .secondary { background: #f4f6fa; border: 1px solid #e4e9f1; border-radius: .65rem; color: #596b84; cursor: pointer; font: inherit; font-size: .78rem; font-weight: 750; padding: .7rem .85rem; } .saving-dot { animation: pulse 1s ease-in-out infinite alternate; background: currentColor; border-radius: 50%; display: inline-block; height: .42rem; margin-right: .35rem; width: .42rem; } @keyframes pulse { from { opacity: .35; } to { opacity: 1; } }
     @media (max-width: 700px) { .page-head { align-items: stretch; display: grid; grid-template-columns: 1fr; } .primary { width: 100%; } .metrics { grid-template-columns: 1fr; } .workspace-top { align-items: stretch; flex-direction: column; } .search { width: 100%; } .dialog { max-width: none; width: 100%; } } @media (max-width: 420px) { .dialog { padding: 1rem; } .form-actions { align-items: stretch; flex-direction: column-reverse; } .form-actions button { width: 100%; } }
   `,
@@ -72,7 +76,7 @@ import {
             <tbody>
               @for (student of filteredStudents(); track student.id) {
                 <tr>
-                  <td class="student-name">{{ student.fullName }}</td>
+                  <td class="student-name"><div class="student-identity">@if (photoUrl(student.id); as imageUrl) { <span class="avatar"><img [src]="imageUrl" [alt]="'Photo of ' + student.fullName" /></span> } @else { <span class="avatar" aria-hidden="true">{{ initials(student.fullName) }}</span> }<span>{{ student.fullName }}</span></div></td>
                   <td class="student-number">{{ student.studentNo }}</td>
                   <td>Class {{ student.classLevel }}</td>
                   <td>{{ student.guardianPhone }}</td>
@@ -94,18 +98,36 @@ import {
         <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="add-student-title">
           <header class="dialog-head">
             <div><p class="eyebrow">New learner</p><h2 id="add-student-title">Add student</h2><p>Save a learner record with the details your coaching team needs.</p></div>
-            <button class="close" type="button" (click)="closeCreateForm()" aria-label="Close add student form">×</button>
+            <button class="close" type="button" (click)="closeCreateForm()" [disabled]="isSubmitting()" aria-label="Close add student form">×</button>
           </header>
           <form [formGroup]="studentForm" (ngSubmit)="createStudent()" novalidate>
+            <div class="photo-field">
+              <span class="photo-label">Student photo <span class="optional">Optional</span></span>
+              <input #photoInput class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" (change)="onPhotoInput($event)" />
+              @if (photoPreviewUrl(); as previewUrl) {
+                <div class="photo-preview">
+                  <img class="preview-image" [src]="previewUrl" alt="Selected student photo preview" />
+                  <div class="preview-details">@if (selectedPhoto(); as photo) { <strong>{{ photo.name }}</strong><span>{{ formatPhotoSize(photo.size) }} · Ready to upload</span> }</div>
+                  <div class="preview-actions"><button class="text-button" type="button" (click)="photoInput.click()" [disabled]="isSubmitting()">Replace</button><button class="text-button danger" type="button" (click)="removeSelectedPhoto()" [disabled]="isSubmitting()">Remove</button></div>
+                </div>
+              } @else {
+                <button class="photo-dropzone" [class.dragging]="photoDropActive()" type="button" (click)="photoInput.click()" (dragover)="onPhotoDragOver($event)" (dragleave)="onPhotoDragLeave($event)" (drop)="onPhotoDrop($event)" [disabled]="isSubmitting()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4" /><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
+                  <span><strong>Drop a photo here or browse</strong>JPEG, PNG or WebP · up to 2 MB</span>
+                </button>
+              }
+              @if (photoError(); as message) { <p class="photo-error" role="alert">{{ message }}</p> }
+            </div>
+            @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
             <div class="field">
               <label for="studentNo">Student number</label>
               <input id="studentNo" formControlName="studentNo" autocomplete="off" placeholder="e.g. ST-1025" [class.invalid]="isInvalid('studentNo')" />
-              @if (isInvalid('studentNo')) { <p class="field-error">Use 2–32 letters, numbers, spaces or hyphens.</p> }
+              @if (isInvalid('studentNo')) { <p class="field-error">Use 2–64 letters, numbers, spaces or hyphens.</p> }
             </div>
             <div class="field">
               <label for="fullName">Full name</label>
               <input id="fullName" formControlName="fullName" autocomplete="name" placeholder="Learner's full name" [class.invalid]="isInvalid('fullName')" />
-              @if (isInvalid('fullName')) { <p class="field-error">Enter the learner's full name (2–128 characters).</p> }
+              @if (isInvalid('fullName')) { <p class="field-error">Enter the learner's full name (2–256 characters).</p> }
             </div>
             <div class="field">
               <label for="classLevel">Class level</label>
@@ -124,11 +146,11 @@ import {
               <label for="deviceUserId">Device identity <span class="optional">Optional</span></label>
               <input id="deviceUserId" formControlName="deviceUserId" autocomplete="off" placeholder="Fingerprint / RFID / face ID" [class.invalid]="isInvalid('deviceUserId')" />
               <p class="help">Assign this only when the learner is already enrolled on an attendance device.</p>
-              @if (isInvalid('deviceUserId')) { <p class="field-error">Device identity must be 64 characters or fewer.</p> }
+              @if (isInvalid('deviceUserId')) { <p class="field-error">Device identity must be 128 characters or fewer.</p> }
             </div>
             <div class="form-actions">
-              <button class="secondary" type="button" (click)="closeCreateForm()" [disabled]="saving()">Cancel</button>
-              <button class="primary" type="submit" [disabled]="saving()">@if (saving()) { <span class="saving-dot"></span>Saving student… } @else { Add student }</button>
+              <button class="secondary" type="button" (click)="closeCreateForm()" [disabled]="isSubmitting()">Cancel</button>
+              <button class="primary" type="submit" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Saving student… } @else if (uploadingPhotoId()) { <span class="saving-dot"></span>Uploading photo… } @else if (createdStudentId() && selectedPhoto()) { Retry photo upload } @else if (createdStudentId()) { Done } @else { Add student }</button>
             </div>
           </form>
         </section>
@@ -136,41 +158,65 @@ import {
     }
   `,
 })
-export class StudentsPageComponent implements OnInit {
+export class StudentsPageComponent implements OnInit, OnDestroy {
   private readonly store = inject(Store);
   private readonly actions$ = inject(Actions);
   private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly photoUrlService = inject(StudentPhotoUrls);
 
   readonly students = this.store.selectSignal(selectStudents);
   readonly loading = this.store.selectSignal(selectLoading);
   readonly saving = this.store.selectSignal(selectSaving);
+  readonly uploadingPhotoId = this.store.selectSignal(selectUploadingPhotoId);
+  readonly photoUrls = this.store.selectSignal(selectPhotoUrls);
   readonly error = this.store.selectSignal(selectError);
   readonly success = this.store.selectSignal(selectSuccess);
   readonly query = signal('');
   readonly formOpen = signal(false);
+  readonly selectedPhoto = signal<File | null>(null);
+  readonly photoPreviewUrl = signal<string | null>(null);
+  readonly photoError = signal<string | null>(null);
+  readonly photoDropActive = signal(false);
+  readonly createdStudentId = signal<string | null>(null);
   readonly classLevels = Array.from({ length: 12 }, (_, index) => index + 1);
   readonly filteredStudents = computed(() => filterStudents(this.students(), this.query()));
   readonly classCount = computed(() => new Set(this.students().map((student) => student.classLevel)).size);
+  readonly isSubmitting = computed(() => this.saving() || this.uploadingPhotoId() !== null);
   readonly contactCoverage = computed(() => {
     const students = this.students();
     return students.length ? Math.round((students.filter((student) => !!student.guardianPhone.trim()).length / students.length) * 100) : 0;
   });
   readonly studentForm = this.formBuilder.nonNullable.group({
-    studentNo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(32), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9 -]*$/)]],
-    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(128)]],
+    studentNo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(64), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9 -]*$/)]],
+    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(256)]],
     classLevel: [0, [Validators.required, Validators.min(1), Validators.max(12)]],
-    guardianPhone: ['', [Validators.required, Validators.maxLength(40), Validators.pattern(/^(?=(?:.*\d){6})\+?[0-9][0-9 ()-]*$/)]],
-    deviceUserId: ['', [Validators.maxLength(64)]],
+    guardianPhone: ['', [Validators.required, Validators.maxLength(64), Validators.pattern(/^(?=(?:.*\d){6})\+?[0-9][0-9 ()-]*$/)]],
+    deviceUserId: ['', [Validators.maxLength(128)]],
   });
 
   constructor() {
     this.actions$.pipe(
       ofType(StudentsActions.createSuccess),
       takeUntilDestroyed(this.destroyRef),
-    ).subscribe(() => {
-      this.formOpen.set(false);
-      this.studentForm.reset({ studentNo: '', fullName: '', classLevel: 0, guardianPhone: '', deviceUserId: '' });
+    ).subscribe(({ student }) => {
+      const photo = this.selectedPhoto();
+      if (photo) {
+        this.createdStudentId.set(student.id);
+        this.store.dispatch(StudentsActions.uploadPhoto({ studentId: student.id, photo }));
+        return;
+      }
+
+      this.completeStudentCreation();
+    });
+
+    this.actions$.pipe(
+      ofType(StudentsActions.uploadPhotoSuccess),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(({ studentId }) => {
+      if (this.createdStudentId() === studentId) {
+        this.completeStudentCreation();
+      }
     });
   }
 
@@ -180,13 +226,14 @@ export class StudentsPageComponent implements OnInit {
 
   openCreateForm(): void {
     this.store.dispatch(StudentsActions.clearFeedback());
-    this.studentForm.reset({ studentNo: '', fullName: '', classLevel: 0, guardianPhone: '', deviceUserId: '' });
+    this.resetCreateForm();
     this.formOpen.set(true);
   }
 
   closeCreateForm(): void {
-    if (!this.saving()) {
+    if (!this.isSubmitting()) {
       this.formOpen.set(false);
+      this.resetCreateForm();
     }
   }
 
@@ -210,6 +257,17 @@ export class StudentsPageComponent implements OnInit {
   }
 
   createStudent(): void {
+    const existingStudentId = this.createdStudentId();
+    if (existingStudentId) {
+      const photo = this.selectedPhoto();
+      if (photo) {
+        this.store.dispatch(StudentsActions.uploadPhoto({ studentId: existingStudentId, photo }));
+      } else {
+        this.completeStudentCreation();
+      }
+      return;
+    }
+
     if (this.studentForm.invalid) {
       this.studentForm.markAllAsTouched();
       return;
@@ -226,6 +284,119 @@ export class StudentsPageComponent implements OnInit {
       },
     }));
   }
+
+  onPhotoInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const photo = input.files?.item(0) ?? null;
+    input.value = '';
+    if (photo) {
+      this.selectPhoto(photo);
+    }
+  }
+
+  onPhotoDragOver(event: DragEvent): void {
+    event.preventDefault();
+    if (!this.isSubmitting()) {
+      this.photoDropActive.set(true);
+    }
+  }
+
+  onPhotoDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.photoDropActive.set(false);
+  }
+
+  onPhotoDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.photoDropActive.set(false);
+    if (this.isSubmitting()) {
+      return;
+    }
+
+    const files = event.dataTransfer?.files;
+    if (!files?.length) {
+      this.photoError.set('Drop a JPEG, PNG or WebP image to select it.');
+      return;
+    }
+
+    if (files.length > 1) {
+      this.photoError.set('Select one student photo at a time.');
+      return;
+    }
+
+    this.selectPhoto(files.item(0)!);
+  }
+
+  removeSelectedPhoto(): void {
+    if (this.isSubmitting()) {
+      return;
+    }
+
+    this.clearSelectedPhoto();
+  }
+
+  photoUrl(studentId: string): string | null {
+    return this.photoUrls()[studentId] ?? null;
+  }
+
+  initials(name: string): string {
+    return name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('') || '•';
+  }
+
+  formatPhotoSize(bytes: number): string {
+    if (bytes < 1024 * 1024) {
+      return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  ngOnDestroy(): void {
+    this.clearSelectedPhoto();
+    this.photoUrlService.releaseAll();
+    this.store.dispatch(StudentsActions.clearPhotoUrls());
+  }
+
+  private selectPhoto(photo: File): void {
+    const message = photoValidationMessage(photo);
+    if (message) {
+      this.photoError.set(message);
+      return;
+    }
+
+    this.clearSelectedPhoto();
+    this.selectedPhoto.set(photo);
+    this.photoPreviewUrl.set(URL.createObjectURL(photo));
+    this.photoError.set(null);
+    this.store.dispatch(StudentsActions.clearFeedback());
+  }
+
+  private clearSelectedPhoto(): void {
+    const previewUrl = this.photoPreviewUrl();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    this.selectedPhoto.set(null);
+    this.photoPreviewUrl.set(null);
+    this.photoError.set(null);
+  }
+
+  private completeStudentCreation(): void {
+    this.formOpen.set(false);
+    this.resetCreateForm();
+  }
+
+  private resetCreateForm(): void {
+    this.studentForm.reset({ studentNo: '', fullName: '', classLevel: 0, guardianPhone: '', deviceUserId: '' });
+    this.createdStudentId.set(null);
+    this.clearSelectedPhoto();
+  }
 }
 
 function filterStudents<T extends { studentNo: string; fullName: string; classLevel: number; guardianPhone: string; deviceUserId: string | null }>(students: T[], query: string): T[] {
@@ -241,4 +412,17 @@ function filterStudents<T extends { studentNo: string; fullName: string; classLe
     student.guardianPhone,
     student.deviceUserId ?? '',
   ].some((value) => value.toLocaleLowerCase().includes(term)));
+}
+
+function photoValidationMessage(photo: File): string | null {
+  const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!acceptedTypes.includes(photo.type.toLocaleLowerCase())) {
+    return 'Choose a JPEG, PNG or WebP image.';
+  }
+
+  if (photo.size > 2 * 1024 * 1024) {
+    return 'Choose an image smaller than 2 MB.';
+  }
+
+  return null;
 }

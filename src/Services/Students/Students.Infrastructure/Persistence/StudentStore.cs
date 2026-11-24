@@ -20,8 +20,36 @@ public sealed class StudentStore(StudentsDbContext db) : IStudentStore
     public async Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
         await db.Students.AsNoTracking().OrderBy(student => student.FullName).ToListAsync(ct);
 
+    public async Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default)
+    {
+        var photos = await db.StudentPhotos
+            .AsNoTracking()
+            .Select(photo => new { photo.StudentId, photo.ContentType, photo.UpdatedAt, photo.SizeBytes })
+            .ToListAsync(ct);
+
+        return photos.ToDictionary(
+            photo => photo.StudentId,
+            photo => new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt));
+    }
+
+    public Task<StudentPhotoMetadata?> GetPhotoMetadataAsync(Guid studentId, CancellationToken ct = default) =>
+        db.StudentPhotos
+            .AsNoTracking()
+            .Where(photo => photo.StudentId == studentId)
+            .Select(photo => new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt))
+            .FirstOrDefaultAsync(ct);
+
+    public Task<StudentPhoto?> GetPhotoAsync(Guid studentId, CancellationToken ct = default) =>
+        db.StudentPhotos.AsNoTracking().FirstOrDefaultAsync(photo => photo.StudentId == studentId, ct);
+
+    public Task<StudentPhoto?> GetPhotoForUpdateAsync(Guid studentId, CancellationToken ct = default) =>
+        db.StudentPhotos.FirstOrDefaultAsync(photo => photo.StudentId == studentId, ct);
+
     public async Task AddAsync(Student student, CancellationToken ct = default) =>
         await db.Students.AddAsync(student, ct);
+
+    public async Task AddPhotoAsync(StudentPhoto photo, CancellationToken ct = default) =>
+        await db.StudentPhotos.AddAsync(photo, ct);
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {

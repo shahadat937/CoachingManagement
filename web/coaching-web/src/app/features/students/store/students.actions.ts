@@ -1,5 +1,5 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
-import { CreateStudentRequest, Student } from '../data/student.models';
+import { CreateStudentRequest, Student, StudentPhotoMetadata } from '../data/student.models';
 
 export const StudentsActions = createActionGroup({
   source: 'Students',
@@ -10,6 +10,13 @@ export const StudentsActions = createActionGroup({
     Create: props<{ request: CreateStudentRequest }>(),
     'Create Success': props<{ student: Student }>(),
     'Create Failure': props<{ error: string }>(),
+    'Upload Photo': props<{ studentId: string; photo: File }>(),
+    'Upload Photo Success': props<{ studentId: string; metadata: StudentPhotoMetadata }>(),
+    'Upload Photo Failure': props<{ studentId: string; error: string }>(),
+    'Load Photo': props<{ studentId: string }>(),
+    'Load Photo Success': props<{ studentId: string; objectUrl: string }>(),
+    'Load Photo Failure': props<{ studentId: string }>(),
+    'Clear Photo Urls': emptyProps(),
     'Clear Feedback': emptyProps(),
   },
 });

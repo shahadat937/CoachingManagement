@@ -1,4 +1,5 @@
 using Coaching.BuildingBlocks.Security;
+using Coaching.Students.Application;
 using Coaching.Students.Application.Features;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -57,4 +58,65 @@ public class StudentsController(ISender sender) : ControllerBase
             });
         }
     }
+
+    [HttpPost("{id:guid}/photo")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(StudentPhotoUploadValidation.MaxRequestBytes)]
+    public async Task<IActionResult> UploadPhoto(Guid id, [FromForm] IFormFile? photo, CancellationToken ct)
+    {
+        if (photo is null)
+            return PhotoValidationProblem("Choose a photo to upload.");
+
+        if (photo.Length > StudentPhotoUploadValidation.MaxPhotoBytes)
+            return PhotoTooLargeProblem();
+
+        try
+        {
+            await using var input = photo.OpenReadStream();
+            await using var output = new MemoryStream((int)photo.Length);
+            await input.CopyToAsync(output, ct);
+
+            var metadata = await sender.Send(
+                new UploadStudentPhotoCommand(id, photo.ContentType, output.ToArray()),
+                ct);
+            return metadata is null ? NotFound() : Ok(metadata);
+        }
+        catch (StudentPhotoValidationException exception)
+        {
+            return PhotoValidationProblem(exception.Message);
+        }
+        catch (StudentPhotoSizeLimitExceededException)
+        {
+            return PhotoTooLargeProblem();
+        }
+        catch (InvalidDataException)
+        {
+            return PhotoTooLargeProblem();
+        }
+    }
+
+    [HttpGet("{id:guid}/photo")]
+    [Produces("image/jpeg", "image/png", "image/webp")]
+    public async Task<IActionResult> GetPhoto(Guid id, CancellationToken ct)
+    {
+        var photo = await sender.Send(new GetStudentPhotoQuery(id), ct);
+        if (photo is null)
+            return NotFound();
+
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers.XContentTypeOptions = "nosniff";
+        return File(photo.Bytes, photo.Metadata.ContentType);
+    }
+
+    private IActionResult PhotoValidationProblem(string message) =>
+        ValidationProblem(new ValidationProblemDetails(
+            new Dictionary<string, string[]> { ["photo"] = [message] }));
+
+    private IActionResult PhotoTooLargeProblem() =>
+        StatusCode(StatusCodes.Status413PayloadTooLarge, new ProblemDetails
+        {
+            Title = "Student photo is too large",
+            Detail = $"A student photo must be {StudentPhotoUploadValidation.MaxPhotoBytes / (1024 * 1024)} MiB or smaller.",
+            Status = StatusCodes.Status413PayloadTooLarge,
+        });
 }
