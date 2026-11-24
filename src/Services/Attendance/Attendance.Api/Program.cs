@@ -49,4 +49,6 @@ app.MapHealthChecks("/health");
 using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<AttendanceDbContext>().Database.EnsureCreated();
 
+app.Services.EnsureAttendanceStudentRefSchema();
+
 app.Run();

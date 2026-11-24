@@ -97,6 +97,13 @@ public class StudentsController(ISender sender) : ControllerBase
         }
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new DeactivateStudentCommand(id), ct);
+        return result is null ? NotFound() : NoContent();
+    }
+
     [HttpPost("{id:guid}/photo")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(StudentPhotoUploadValidation.MaxRequestBytes)]

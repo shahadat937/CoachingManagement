@@ -18,6 +18,11 @@ public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) 
             e.Property(x => x.Source).HasConversion<string>().HasMaxLength(16);
             e.HasIndex(x => new { x.SessionId, x.StudentId }).IsUnique(); // one record per student per session
         });
-        b.Entity<StudentRef>(e => { e.HasKey(x => x.StudentId); e.HasIndex(x => x.DeviceUserId); });
+        b.Entity<StudentRef>(e =>
+        {
+            e.HasKey(x => x.StudentId);
+            e.HasIndex(x => x.DeviceUserId);
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+        });
     }
 }

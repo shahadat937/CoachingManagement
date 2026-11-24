@@ -26,11 +26,14 @@ public class StudentCreationTests
         Assert.Equal("Amina Rahman", created.FullName);
         Assert.Equal("+880 1712-345678", created.GuardianPhone);
         Assert.Null(created.DeviceUserId);
+        Assert.True(created.IsActive);
+        Assert.Null(created.DeactivatedAt);
         Assert.Equal(created.Id, Assert.Single(store.Students).Id);
 
         var staged = Assert.Single(outbox.Events);
         Assert.Equal(created.Id, staged.StudentId);
         Assert.Equal("Amina Rahman", staged.FullName);
+        Assert.True(staged.IsActive);
     }
 
     [Theory]
@@ -139,6 +142,88 @@ public class StudentCreationTests
         Assert.Equal(8, staged.ClassLevel);
         Assert.Equal("DEVICE-01", staged.DeviceUserId);
         Assert.Equal("+880 1712-345678", staged.GuardianPhone);
+        Assert.True(staged.IsActive);
+    }
+
+    [Fact]
+    public async Task Deactivate_marks_the_record_inactive_preserves_data_and_stages_an_inactive_sync_event()
+    {
+        var student = new Student
+        {
+            StudentNo = "ST-2026-001",
+            FullName = "Amina Rahman",
+            ClassLevel = 8,
+            GuardianPhone = "+8801712345678",
+            DeviceUserId = "DEVICE-01",
+        };
+        var store = new InMemoryStudentStore { Students = [student] };
+        store.Photos.Add(new StudentPhoto
+        {
+            StudentId = student.Id,
+            Content = [0xFF, 0xD8, 0xFF],
+            ContentType = "image/jpeg",
+            SizeBytes = 3,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        var outbox = new RecordingStudentOutbox();
+        var handler = new DeactivateStudentHandler(store, outbox);
+
+        var result = await handler.Handle(new DeactivateStudentCommand(student.Id), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.True(result.WasDeactivated);
+        Assert.False(student.IsActive);
+        Assert.NotNull(student.DeactivatedAt);
+        Assert.Equal("ST-2026-001", student.StudentNo);
+        Assert.Equal("DEVICE-01", student.DeviceUserId);
+        Assert.Single(store.Photos);
+        Assert.Equal(1, store.SaveChangesCalls);
+        Assert.Empty(await new ListStudentsHandler(store).Handle(new ListStudentsQuery(), CancellationToken.None));
+
+        var staged = Assert.Single(outbox.Events);
+        Assert.Equal(student.Id, staged.StudentId);
+        Assert.Equal("DEVICE-01", staged.DeviceUserId);
+        Assert.False(staged.IsActive);
+    }
+
+    [Fact]
+    public async Task Deactivate_is_idempotent_for_an_inactive_student()
+    {
+        var deactivatedAt = DateTimeOffset.UtcNow.AddDays(-1);
+        var student = new Student
+        {
+            StudentNo = "ST-2026-001",
+            FullName = "Amina Rahman",
+            ClassLevel = 8,
+            GuardianPhone = "+8801712345678",
+            IsActive = false,
+            DeactivatedAt = deactivatedAt,
+        };
+        var store = new InMemoryStudentStore { Students = [student] };
+        var outbox = new RecordingStudentOutbox();
+        var handler = new DeactivateStudentHandler(store, outbox);
+
+        var result = await handler.Handle(new DeactivateStudentCommand(student.Id), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.False(result.WasDeactivated);
+        Assert.Equal(deactivatedAt, student.DeactivatedAt);
+        Assert.Empty(outbox.Events);
+        Assert.Equal(0, store.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task Deactivate_returns_null_for_an_unknown_student_without_changing_state()
+    {
+        var store = new InMemoryStudentStore();
+        var outbox = new RecordingStudentOutbox();
+        var handler = new DeactivateStudentHandler(store, outbox);
+
+        var result = await handler.Handle(new DeactivateStudentCommand(Guid.NewGuid()), CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Empty(outbox.Events);
+        Assert.Equal(0, store.SaveChangesCalls);
     }
 
     [Theory]
@@ -215,7 +300,7 @@ public class StudentCreationTests
             Task.FromResult(Students.SingleOrDefault(student => student.DeviceUserId == deviceUserId));
 
         public Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<Student>>(Students);
+            Task.FromResult<IReadOnlyList<Student>>(Students.Where(student => student.IsActive).ToList());
 
         public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos.ToDictionary(

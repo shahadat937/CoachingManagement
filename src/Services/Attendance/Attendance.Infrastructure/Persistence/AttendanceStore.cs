@@ -20,13 +20,19 @@ public class AttendanceStore(AttendanceDbContext db) : IAttendanceStore
     public async Task<IReadOnlyList<AttendanceRecord>> ListRecordsAsync(Guid sessionId, CancellationToken ct) =>
         await db.Records.AsNoTracking().Where(x => x.SessionId == sessionId).ToListAsync(ct);
     public Task<StudentRef?> FindStudentByDeviceUserIdAsync(string id, CancellationToken ct) =>
-        db.Students.AsNoTracking().FirstOrDefaultAsync(x => x.DeviceUserId == id, ct);
+        db.Students.AsNoTracking().FirstOrDefaultAsync(x => x.DeviceUserId == id && x.IsActive, ct);
 
     public async Task UpsertStudentAsync(StudentRef s, CancellationToken ct)
     {
         var e = await db.Students.FindAsync([s.StudentId], ct);
         if (e is null) await db.Students.AddAsync(s, ct);
-        else { e.FullName = s.FullName; e.ClassLevel = s.ClassLevel; e.DeviceUserId = s.DeviceUserId; }
+        else
+        {
+            e.FullName = s.FullName;
+            e.ClassLevel = s.ClassLevel;
+            e.DeviceUserId = s.DeviceUserId;
+            e.IsActive = s.IsActive;
+        }
     }
     public Task<int> SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
 }

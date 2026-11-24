@@ -21,7 +21,11 @@ public sealed class StudentStore(StudentsDbContext db) : IStudentStore
         db.Students.AsNoTracking().FirstOrDefaultAsync(student => student.DeviceUserId == deviceUserId, ct);
 
     public async Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
-        await db.Students.AsNoTracking().OrderBy(student => student.FullName).ToListAsync(ct);
+        await db.Students
+            .AsNoTracking()
+            .Where(student => student.IsActive)
+            .OrderBy(student => student.FullName)
+            .ToListAsync(ct);
 
     public async Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default)
     {

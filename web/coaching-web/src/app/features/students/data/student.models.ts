@@ -6,6 +6,8 @@ export interface Student {
   classLevel: number;
   guardianPhone: string;
   deviceUserId: string | null;
+  isActive: boolean;
+  deactivatedAt: string | null;
   hasPhoto: boolean;
   photoUpdatedAt: string | null;
 }

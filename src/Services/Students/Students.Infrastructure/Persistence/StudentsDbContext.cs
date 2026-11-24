@@ -15,6 +15,7 @@ public class StudentsDbContext(DbContextOptions<StudentsDbContext> options) : Db
         {
             e.HasIndex(x => x.StudentNo).IsUnique();
             e.HasIndex(x => x.DeviceUserId).IsUnique();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
         });
         b.Entity<StudentPhoto>(e =>
         {

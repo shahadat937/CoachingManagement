@@ -12,6 +12,8 @@ public sealed record StudentResponse(
     int ClassLevel,
     string GuardianPhone,
     string? DeviceUserId,
+    bool IsActive,
+    DateTimeOffset? DeactivatedAt,
     bool HasPhoto,
     DateTimeOffset? PhotoUpdatedAt)
 {
@@ -23,6 +25,8 @@ public sealed record StudentResponse(
         student.ClassLevel,
         student.GuardianPhone,
         student.DeviceUserId,
+        student.IsActive,
+        student.DeactivatedAt,
         photo is not null,
         photo?.UpdatedAt);
 }
@@ -161,7 +165,8 @@ public class CreateStudentHandler(IStudentStore store, IStudentEventOutbox outbo
             student.FullName,
             student.ClassLevel,
             student.DeviceUserId,
-            student.GuardianPhone), ct);
+            student.GuardianPhone,
+            student.IsActive), ct);
         await store.SaveChangesAsync(ct);
         return StudentResponse.From(student);
     }
@@ -214,10 +219,43 @@ public class UpdateStudentHandler(IStudentStore store, IStudentEventOutbox outbo
             student.FullName,
             student.ClassLevel,
             student.DeviceUserId,
-            student.GuardianPhone), ct);
+            student.GuardianPhone,
+            student.IsActive), ct);
         await store.SaveChangesAsync(ct);
 
         return StudentResponse.From(student, await store.GetPhotoMetadataAsync(student.Id, ct));
+    }
+}
+
+public sealed record DeactivateStudentResult(bool WasDeactivated);
+
+public record DeactivateStudentCommand(Guid Id) : IRequest<DeactivateStudentResult?>;
+
+public class DeactivateStudentHandler(IStudentStore store, IStudentEventOutbox outbox)
+    : IRequestHandler<DeactivateStudentCommand, DeactivateStudentResult?>
+{
+    public async Task<DeactivateStudentResult?> Handle(DeactivateStudentCommand command, CancellationToken ct)
+    {
+        var student = await store.GetByIdForUpdateAsync(command.Id, ct);
+        if (student is null)
+            return null;
+
+        if (!student.IsActive)
+            return new DeactivateStudentResult(false);
+
+        student.IsActive = false;
+        student.DeactivatedAt = DateTimeOffset.UtcNow;
+
+        await outbox.EnqueueAsync(new StudentEnrolled(
+            student.Id,
+            student.FullName,
+            student.ClassLevel,
+            student.DeviceUserId,
+            student.GuardianPhone,
+            student.IsActive), ct);
+        await store.SaveChangesAsync(ct);
+
+        return new DeactivateStudentResult(true);
     }
 }
 

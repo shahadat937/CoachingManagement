@@ -91,6 +91,49 @@ public class AttendanceFlowTests
         Assert.Empty(bus.Events);
     }
 
+    [Fact]
+    public async Task Device_punch_is_ignored_when_the_student_projection_is_inactive()
+    {
+        var store = new InMemoryAttendanceStore
+        {
+            Session = CreateSession(),
+            Student = new StudentRef
+            {
+                StudentId = Guid.NewGuid(),
+                FullName = "Inactive Learner",
+                ClassLevel = 8,
+                DeviceUserId = "inactive-device-user",
+                IsActive = false,
+            },
+        };
+        var bus = new RecordingEventBus();
+        var handler = new RecordDevicePunchHandler(store, bus);
+
+        var accepted = await handler.Handle(
+            new RecordDevicePunchCommand("inactive-device-user", "A-101", SessionStart, "DEV-01"),
+            CancellationToken.None);
+
+        Assert.False(accepted);
+        Assert.Empty(store.Records);
+        Assert.Empty(bus.Events);
+    }
+
+    [Fact]
+    public async Task Student_sync_preserves_inactive_status_in_the_local_projection()
+    {
+        var store = new InMemoryAttendanceStore();
+        var handler = new UpsertStudentRefHandler(store);
+        var studentId = Guid.NewGuid();
+
+        await handler.Handle(
+            new UpsertStudentRefCommand(studentId, "Inactive Learner", 8, "inactive-device-user", IsActive: false),
+            CancellationToken.None);
+
+        var student = Assert.IsType<StudentRef>(store.Student);
+        Assert.Equal(studentId, student.StudentId);
+        Assert.False(student.IsActive);
+    }
+
     private static ClassSession CreateSession() => new(
         classLevel: 8,
         subjectId: Guid.NewGuid(),
@@ -104,7 +147,7 @@ public class AttendanceFlowTests
         private readonly List<AttendanceRecord> _records = [];
 
         public ClassSession? Session { get; init; }
-        public StudentRef? Student { get; init; }
+        public StudentRef? Student { get; set; }
         public IReadOnlyList<AttendanceRecord> Records => _records;
 
         public Task<ClassSession?> GetSessionAsync(Guid id, CancellationToken ct) =>
@@ -135,7 +178,11 @@ public class AttendanceFlowTests
         public Task<StudentRef?> FindStudentByDeviceUserIdAsync(string deviceUserId, CancellationToken ct) =>
             Task.FromResult(Student?.DeviceUserId == deviceUserId ? Student : null);
 
-        public Task UpsertStudentAsync(StudentRef student, CancellationToken ct) => Task.CompletedTask;
+        public Task UpsertStudentAsync(StudentRef student, CancellationToken ct)
+        {
+            Student = student;
+            return Task.CompletedTask;
+        }
 
         public Task<int> SaveChangesAsync(CancellationToken ct) => Task.FromResult(1);
     }

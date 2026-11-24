@@ -65,4 +65,5 @@ public class StudentRef
     public string FullName { get; set; } = default!;
     public int ClassLevel { get; set; }
     public string? DeviceUserId { get; set; }
+    public bool IsActive { get; set; } = true;
 }

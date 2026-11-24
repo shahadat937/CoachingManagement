@@ -19,7 +19,8 @@ public sealed class StudentEventOutbox(StudentsDbContext db) : IStudentEventOutb
             FullName = @event.FullName,
             ClassLevel = @event.ClassLevel,
             DeviceUserId = @event.DeviceUserId,
-            GuardianPhone = @event.GuardianPhone
+            GuardianPhone = @event.GuardianPhone,
+            IsActive = @event.IsActive,
         }, ct);
     }
 }
@@ -56,7 +57,7 @@ public sealed class StudentEventOutboxDispatcher(
                     {
                         await bus.PublishAsync(new StudentEnrolled(
                             message.StudentId, message.FullName, message.ClassLevel,
-                            message.DeviceUserId, message.GuardianPhone), stoppingToken);
+                            message.DeviceUserId, message.GuardianPhone, message.IsActive), stoppingToken);
                         message.PublishedAt = DateTimeOffset.UtcNow;
                         message.LastError = null;
                         message.NextAttemptAt = null;

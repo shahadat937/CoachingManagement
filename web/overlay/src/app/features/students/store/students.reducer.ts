@@ -45,6 +45,20 @@ export const studentsFeature = createFeature({
       success: `${student.fullName} was updated.`,
     })),
     on(A.updateFailure, (state, { error }) => ({ ...state, saving: false, error })),
+    on(A.deactivate, (state) => ({ ...state, saving: true, error: null, success: null })),
+    on(A.deactivateSuccess, (state, { student }) => {
+      const photoUrls = { ...state.photoUrls };
+      delete photoUrls[student.id];
+
+      return {
+        ...state,
+        students: state.students.filter((item) => item.id !== student.id),
+        photoUrls,
+        saving: false,
+        success: `${student.fullName} was made inactive. Their record was not erased.`,
+      };
+    }),
+    on(A.deactivateFailure, (state, { error }) => ({ ...state, saving: false, error })),
     on(A.uploadPhoto, (state, { studentId }) => ({ ...state, uploadingPhotoId: studentId, error: null, success: null })),
     on(A.uploadPhotoSuccess, (state, { studentId, metadata }) => {
       const student = state.students.find((item) => item.id === studentId);

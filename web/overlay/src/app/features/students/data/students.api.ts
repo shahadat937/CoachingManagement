@@ -20,6 +20,10 @@ export class StudentsApi {
     return this.http.put<Student>(`${this.baseUrl}/${encodeURIComponent(studentId)}`, request);
   }
 
+  deactivate(studentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(studentId)}`);
+  }
+
   uploadPhoto(studentId: string, photo: File): Observable<StudentPhotoMetadata> {
     const body = new FormData();
     body.append('photo', photo, photo.name);

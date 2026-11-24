@@ -56,7 +56,7 @@ public class RecordDevicePunchHandler(IAttendanceStore store, IEventBus bus) : I
     public async Task<bool> Handle(RecordDevicePunchCommand c, CancellationToken ct)
     {
         var student = await store.FindStudentByDeviceUserIdAsync(c.DeviceUserId, ct);
-        if (student is null) return false;                                   // unknown card/finger
+        if (student is null || !student.IsActive) return false;               // unknown or inactive card/finger
 
         // The punch's room + time + the student's class decide WHICH SUBJECT session this belongs to.
         var session = await store.FindOpenSessionAsync(student.ClassLevel, c.RoomCode, c.PunchedAt, ct);
@@ -73,13 +73,25 @@ public class RecordDevicePunchHandler(IAttendanceStore store, IEventBus bus) : I
 }
 
 // ---- Student read-model sync ----
-public record UpsertStudentRefCommand(Guid StudentId, string FullName, int ClassLevel, string? DeviceUserId) : IRequest;
+public record UpsertStudentRefCommand(
+    Guid StudentId,
+    string FullName,
+    int ClassLevel,
+    string? DeviceUserId,
+    bool IsActive = true) : IRequest;
 
 public class UpsertStudentRefHandler(IAttendanceStore store) : IRequestHandler<UpsertStudentRefCommand>
 {
     public async Task Handle(UpsertStudentRefCommand c, CancellationToken ct)
     {
-        await store.UpsertStudentAsync(new StudentRef { StudentId = c.StudentId, FullName = c.FullName, ClassLevel = c.ClassLevel, DeviceUserId = c.DeviceUserId }, ct);
+        await store.UpsertStudentAsync(new StudentRef
+        {
+            StudentId = c.StudentId,
+            FullName = c.FullName,
+            ClassLevel = c.ClassLevel,
+            DeviceUserId = c.DeviceUserId,
+            IsActive = c.IsActive,
+        }, ct);
         await store.SaveChangesAsync(ct);
     }
 }

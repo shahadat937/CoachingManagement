@@ -12,6 +12,7 @@ public class StudentOutboxMessage
     public int ClassLevel { get; set; }
     public string? DeviceUserId { get; set; }
     public string GuardianPhone { get; set; } = default!;
+    public bool IsActive { get; set; } = true;
     public DateTimeOffset OccurredAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? PublishedAt { get; set; }
     public int Attempts { get; set; }

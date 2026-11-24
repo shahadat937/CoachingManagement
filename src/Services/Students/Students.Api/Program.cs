@@ -51,5 +51,6 @@ using (var scope = app.Services.CreateScope())
 
 app.Services.EnsureStudentOutboxSchema();
 app.Services.EnsureStudentPhotoSchema();
+app.Services.EnsureStudentLifecycleSchema();
 
 app.Run();

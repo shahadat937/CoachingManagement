@@ -23,6 +23,7 @@ public static class StudentOutboxSchemaInitializer
                 "ClassLevel" integer NOT NULL,
                 "DeviceUserId" text NULL,
                 "GuardianPhone" character varying(64) NOT NULL,
+                "IsActive" boolean NOT NULL DEFAULT TRUE,
                 "OccurredAt" timestamp with time zone NOT NULL,
                 "PublishedAt" timestamp with time zone NULL,
                 "Attempts" integer NOT NULL,
@@ -34,6 +35,10 @@ public static class StudentOutboxSchemaInitializer
         db.Database.ExecuteSqlRaw("""
             CREATE INDEX IF NOT EXISTS "IX_StudentOutbox_PublishedAt_NextAttemptAt_OccurredAt"
             ON "StudentOutbox" ("PublishedAt", "NextAttemptAt", "OccurredAt");
+            """);
+        db.Database.ExecuteSqlRaw("""
+            ALTER TABLE "StudentOutbox"
+            ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT TRUE;
             """);
     }
 }

@@ -42,6 +42,23 @@ export const update$ = createEffect(
   { functional: true },
 );
 
+export const deactivate$ = createEffect(
+  (actions$ = inject(Actions), api = inject(StudentsApi), photoUrls = inject(StudentPhotoUrls)) =>
+    actions$.pipe(
+      ofType(A.deactivate),
+      exhaustMap(({ student }) => api.deactivate(student.id).pipe(
+        map(() => {
+          photoUrls.release(student.id);
+          return A.deactivateSuccess({ student });
+        }),
+        catchError((error: unknown) => of(A.deactivateFailure({
+          error: getApiError(error, 'Unable to make this student inactive.'),
+        }))),
+      )),
+    ),
+  { functional: true },
+);
+
 export const uploadPhoto$ = createEffect(
   (actions$ = inject(Actions), api = inject(StudentsApi)) =>
     actions$.pipe(

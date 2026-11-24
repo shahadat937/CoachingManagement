@@ -38,6 +38,7 @@ import {
     .search { align-items: center; background: #f5f7fb; border: 1px solid #e9edf5; border-radius: .65rem; color: #8795aa; display: flex; gap: .45rem; padding: .5rem .65rem; width: min(100%, 17rem); } .search svg { fill: none; height: .95rem; stroke: currentColor; stroke-width: 2; width: .95rem; } .search input { background: transparent; border: 0; color: #344762; font: inherit; font-size: .76rem; min-width: 0; outline: 0; width: 100%; }
     .table-wrap { overflow-x: auto; } table { border-collapse: collapse; min-width: 44rem; width: 100%; } th { background: #fafbfe; border-bottom: 1px solid #e9edf5; color: #77869d; font-size: .68rem; font-weight: 800; letter-spacing: .05em; padding: .72rem 1.1rem; text-align: left; text-transform: uppercase; } td { border-bottom: 1px solid #eef1f6; color: #445570; font-size: .78rem; padding: .92rem 1.1rem; white-space: nowrap; } tr:last-child td { border-bottom: 0; } .student-name { color: #2f415d; font-weight: 750; } .student-identity { align-items: center; display: flex; gap: .6rem; } .avatar { align-items: center; background: linear-gradient(135deg, #eeeefe, #dceff7); border-radius: 50%; color: #5d58c9; display: inline-flex; font-weight: 800; height: 2rem; justify-content: center; overflow: hidden; width: 2rem; } .avatar img { height: 100%; object-fit: cover; width: 100%; } .student-number { color: #635be8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; font-weight: 700; } .muted { color: #8290a5; } .device { background: #f1efff; border-radius: 100px; color: #655cdb; display: inline-flex; font-size: .67rem; font-weight: 750; padding: .25rem .5rem; }
     .photo-avatar { cursor: zoom-in; } .photo-avatar:focus-visible { outline: 3px solid rgba(97, 89, 233, .42); outline-offset: 3px; } .passport-photo-popover { background: #fff; border: 1px solid #dfe5f0; border-radius: .85rem; box-shadow: 0 18px 40px rgba(28, 43, 70, .25); box-sizing: border-box; padding: .45rem; pointer-events: none; position: fixed; width: 8rem; z-index: 40; } .passport-photo-popover img { aspect-ratio: 7 / 9; border-radius: .5rem; display: block; object-fit: cover; width: 100%; } .passport-photo-popover strong { color: #2d405c; display: block; font-size: .68rem; margin: .48rem .15rem 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .passport-photo-popover span { color: #7d8ba0; display: block; font-size: .62rem; margin: .18rem .15rem .05rem; }
+    .row-actions { display: flex; gap: .4rem; } .danger-primary { background: #c84e5f; box-shadow: 0 10px 22px rgba(184, 69, 84, .18); }
     .footer { align-items: center; border-top: 1px solid #eef1f6; color: #8391a5; display: flex; font-size: .72rem; justify-content: space-between; padding: .8rem 1.2rem; } .endpoint { color: #665eea; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .68rem; } .empty { color: #8492a7; font-size: .82rem; padding: 2.4rem 1.2rem; text-align: center; } .empty strong { color: #40536e; display: block; font-size: .92rem; margin-bottom: .3rem; }
     .dialog-backdrop { align-items: stretch; background: rgba(18, 32, 55, .45); display: flex; justify-content: flex-end; inset: 0; padding: 0; position: fixed; z-index: 30; } .dialog { background: #fff; box-shadow: -16px 0 44px rgba(20, 36, 62, .2); display: flex; flex-direction: column; max-width: 31rem; overflow-y: auto; padding: 1.3rem; width: min(100%, 31rem); } .dialog-head { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.35rem; } .dialog-head h2 { color: #20334f; font-size: 1.2rem; letter-spacing: -.03em; margin: .15rem 0 0; } .dialog-head p { color: #78879e; font-size: .77rem; line-height: 1.45; margin: .4rem 0 0; } .close { align-items: center; background: #f4f6fa; border: 0; border-radius: .55rem; color: #63738c; cursor: pointer; display: inline-flex; font-size: 1.18rem; height: 2rem; justify-content: center; width: 2rem; }
     form { display: grid; gap: 1rem; } .field { display: grid; gap: .42rem; } .field label, .photo-label { color: #40536e; font-size: .76rem; font-weight: 750; } .optional { color: #91a0b2; font-size: .68rem; font-weight: 600; } .field input, .field select { background: #fff; border: 1px solid #dce4f0; border-radius: .62rem; box-sizing: border-box; color: #30435f; font: inherit; font-size: .84rem; padding: .7rem .75rem; width: 100%; } .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #71819a 50%), linear-gradient(135deg, #71819a 50%, transparent 50%); background-position: calc(100% - 15px) calc(50% - 2px), calc(100% - 10px) calc(50% - 2px); background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; } .field input::placeholder { color: #a7b1bf; } .field input.invalid, .field select.invalid { border-color: #df7180; } .help, .field-error { font-size: .7rem; line-height: 1.35; margin: 0; } .help { color: #8997aa; } .field-error { color: #c54c5a; }
@@ -84,7 +85,7 @@ import {
                   <td>{{ student.guardianPhone }}</td>
                   <td>@if (student.deviceUserId) { <span class="device">{{ student.deviceUserId }}</span> } @else { <span class="muted">Not assigned</span> }</td>
                   <td class="muted">{{ student.createdAt | date:'dd MMM y' }}</td>
-                  <td><button class="secondary" type="button" (click)="openEditForm(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Edit ' + student.fullName">Edit</button></td>
+                  <td><div class="row-actions"><button class="secondary" type="button" (click)="openEditForm(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Edit ' + student.fullName">Edit</button><button class="text-button danger" type="button" (click)="openDeactivateDialog(student)" [disabled]="isSubmitting()" [attr.aria-label]="'Delete ' + student.fullName" title="Make inactive while keeping the record">Delete</button></div></td>
                 </tr>
               }
             </tbody>
@@ -214,6 +215,24 @@ import {
         </section>
       </div>
     }
+
+    @if (deactivatingStudent(); as student) {
+      <div class="dialog-backdrop" (click)="closeDeactivateFromBackdrop($event)">
+        <section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="deactivate-student-title" aria-describedby="deactivate-student-description">
+          <header class="dialog-head">
+            <div><p class="eyebrow">Student status</p><h2 id="deactivate-student-title">Make student inactive?</h2><p id="deactivate-student-description">{{ student.fullName }} will be removed from the active directory.</p></div>
+            <button class="close" type="button" (click)="closeDeactivateDialog()" [disabled]="isSubmitting()" aria-label="Close inactive student confirmation">&times;</button>
+          </header>
+          @if (error(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+          <p class="description">This is not a permanent deletion. The student record, passport photo, and history remain stored as inactive.</p>
+          <p class="help"><strong>What changes:</strong> the learner will no longer appear in this active student list. You can keep their record for audit and historical reporting.</p>
+          <div class="form-actions">
+            <button class="secondary" type="button" (click)="closeDeactivateDialog()" [disabled]="isSubmitting()">Cancel</button>
+            <button class="primary danger-primary" type="button" (click)="deactivateStudent()" [disabled]="isSubmitting()">@if (saving()) { <span class="saving-dot"></span>Making inactive… } @else { Make inactive }</button>
+          </div>
+        </section>
+      </div>
+    }
   `,
 })
 export class StudentsPageComponent implements OnInit, OnDestroy {
@@ -234,6 +253,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   readonly query = signal('');
   readonly formOpen = signal(false);
   readonly editingStudent = signal<Student | null>(null);
+  readonly deactivatingStudent = signal<Student | null>(null);
   readonly selectedPhoto = signal<File | null>(null);
   readonly photoPreviewUrl = signal<string | null>(null);
   readonly photoError = signal<string | null>(null);
@@ -294,6 +314,15 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
         this.completeStudentEdit();
       }
     });
+
+    this.actions$.pipe(
+      ofType(StudentsActions.deactivateSuccess),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(({ student }) => {
+      if (this.deactivatingStudent()?.id === student.id) {
+        this.completeStudentDeactivation();
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -326,6 +355,15 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     this.editingStudent.set(student);
   }
 
+  openDeactivateDialog(student: Student): void {
+    if (this.isSubmitting()) {
+      return;
+    }
+
+    this.store.dispatch(StudentsActions.clearFeedback());
+    this.deactivatingStudent.set(student);
+  }
+
   closeCreateForm(): void {
     if (!this.isSubmitting()) {
       this.formOpen.set(false);
@@ -348,6 +386,18 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   closeEditFromBackdrop(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
       this.closeEditForm();
+    }
+  }
+
+  closeDeactivateDialog(): void {
+    if (!this.isSubmitting()) {
+      this.completeStudentDeactivation();
+    }
+  }
+
+  closeDeactivateFromBackdrop(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.closeDeactivateDialog();
     }
   }
 
@@ -420,6 +470,15 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
         deviceUserId: value.deviceUserId.trim() || null,
       },
     }));
+  }
+
+  deactivateStudent(): void {
+    const student = this.deactivatingStudent();
+    if (!student || this.isSubmitting()) {
+      return;
+    }
+
+    this.store.dispatch(StudentsActions.deactivate({ student }));
   }
 
   onPhotoInput(event: Event): void {
@@ -556,6 +615,11 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   private completeStudentEdit(): void {
     this.editingStudent.set(null);
     this.editStudentForm.reset({ studentNo: '', fullName: '', classLevel: 0, guardianPhone: '', deviceUserId: '' });
+  }
+
+  private completeStudentDeactivation(): void {
+    this.deactivatingStudent.set(null);
+    this.hidePhotoPreview();
   }
 
   private resetCreateForm(): void {
