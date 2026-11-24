@@ -1,6 +1,7 @@
 using Coaching.BuildingBlocks.Security;
 using Coaching.Students.Application;
 using Coaching.Students.Infrastructure;
+using Coaching.Students.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -52,5 +53,6 @@ using (var scope = app.Services.CreateScope())
 app.Services.EnsureStudentOutboxSchema();
 app.Services.EnsureStudentPhotoSchema();
 app.Services.EnsureStudentLifecycleSchema();
+await app.Services.SeedAsync(app.Environment, app.Configuration);
 
 app.Run();
