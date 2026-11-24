@@ -12,7 +12,8 @@ public sealed record BatchRoutineSlotResponse(
     int DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    string RoomCode)
+    string RoomCode,
+    string? TeacherName)
 {
     public static BatchRoutineSlotResponse From(BatchRoutineSlot slot, Subject subject) => new(
         slot.Id,
@@ -23,7 +24,8 @@ public sealed record BatchRoutineSlotResponse(
         slot.DayOfWeek,
         slot.StartTime,
         slot.EndTime,
-        slot.RoomCode);
+        slot.RoomCode,
+        slot.TeacherName);
 }
 
 public sealed class AcademicNotFoundException(string message) : Exception(message);
@@ -55,7 +57,8 @@ public sealed record CreateBatchRoutineCommand(
     int DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    string? RoomCode) : IRequest<BatchRoutineSlotResponse>;
+    string? RoomCode,
+    string? TeacherName = null) : IRequest<BatchRoutineSlotResponse>;
 
 public sealed class CreateBatchRoutineHandler(IAcademicStore store)
     : IRequestHandler<CreateBatchRoutineCommand, BatchRoutineSlotResponse>
@@ -68,7 +71,8 @@ public sealed class CreateBatchRoutineHandler(IAcademicStore store)
             command.DayOfWeek,
             command.StartTime,
             command.EndTime,
-            command.RoomCode);
+            command.RoomCode,
+            command.TeacherName);
         var context = await RoutineContext.ResolveAsync(store, input.BatchId, input.SubjectId, ct);
         await RoutineContext.EnsureNoOverlapAsync(store, input, null, ct);
 
@@ -78,7 +82,8 @@ public sealed class CreateBatchRoutineHandler(IAcademicStore store)
             input.DayOfWeek,
             input.StartTime,
             input.EndTime,
-            input.RoomCode);
+            input.RoomCode,
+            input.TeacherName);
         await store.AddRoutineSlotAsync(slot, ct);
         await store.SaveChangesAsync(ct);
         return BatchRoutineSlotResponse.From(slot, context.Subject);
@@ -92,7 +97,8 @@ public sealed record UpdateBatchRoutineCommand(
     int DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    string? RoomCode) : IRequest<BatchRoutineSlotResponse>;
+    string? RoomCode,
+    string? TeacherName = null) : IRequest<BatchRoutineSlotResponse>;
 
 public sealed class UpdateBatchRoutineHandler(IAcademicStore store)
     : IRequestHandler<UpdateBatchRoutineCommand, BatchRoutineSlotResponse>
@@ -110,7 +116,8 @@ public sealed class UpdateBatchRoutineHandler(IAcademicStore store)
             command.DayOfWeek,
             command.StartTime,
             command.EndTime,
-            command.RoomCode);
+            command.RoomCode,
+            command.TeacherName);
         var context = await RoutineContext.ResolveAsync(store, input.BatchId, input.SubjectId, ct);
         await RoutineContext.EnsureNoOverlapAsync(store, input, slot.Id, ct);
 
@@ -120,7 +127,8 @@ public sealed class UpdateBatchRoutineHandler(IAcademicStore store)
             input.DayOfWeek,
             input.StartTime,
             input.EndTime,
-            input.RoomCode);
+            input.RoomCode,
+            input.TeacherName);
         await store.SaveChangesAsync(ct);
         return BatchRoutineSlotResponse.From(slot, context.Subject);
     }
@@ -149,7 +157,8 @@ public sealed record ValidatedRoutineInput(
     int DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    string RoomCode);
+    string RoomCode,
+    string? TeacherName);
 
 internal sealed record RoutineContext(AcademicBatch Batch, Subject Subject)
 {
@@ -210,7 +219,8 @@ internal static class RoutineInput
         int dayOfWeek,
         TimeOnly startTime,
         TimeOnly endTime,
-        string? roomCode)
+        string? roomCode,
+        string? teacherName = null)
     {
         if (batchId == Guid.Empty)
             throw new AcademicInputException("batchId", "Batch is required.");
@@ -227,7 +237,18 @@ internal static class RoutineInput
         if (normalizedRoom.Length > 60)
             throw new AcademicInputException("roomCode", "Room must be 60 characters or fewer.");
 
-        return new ValidatedRoutineInput(batchId, subjectId, dayOfWeek, startTime, endTime, normalizedRoom);
+        var normalizedTeacherName = CollapseWhitespace(teacherName);
+        if (normalizedTeacherName is { Length: > 100 })
+            throw new AcademicInputException("teacherName", "Teacher name must be 100 characters or fewer.");
+
+        return new ValidatedRoutineInput(
+            batchId,
+            subjectId,
+            dayOfWeek,
+            startTime,
+            endTime,
+            normalizedRoom,
+            normalizedTeacherName);
     }
 
     private static string? CollapseWhitespace(string? value)

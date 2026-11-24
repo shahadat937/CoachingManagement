@@ -29,7 +29,7 @@ import {
     .drafts { background: #fffdf3; border-bottom: 1px solid #f5ebbd; border-top: 1px solid #f5ebbd; list-style: none; margin: 0; padding: 0; } .draft-label { color: #927331; display: block; font-size: .65rem; font-weight: 800; letter-spacing: .04em; padding: .55rem 1.15rem 0; text-transform: uppercase; } .draft { align-items: center; display: flex; gap: .8rem; justify-content: space-between; padding: .62rem 1.15rem; } .draft:last-child { padding-bottom: .78rem; } .draft .record-title { color: #69572e; } .draft .record-code { color: #9d8c63; } .queued-tag { background: #fff3c9; border-radius: 100px; color: #97752d; font-size: .63rem; font-weight: 800; padding: .28rem .45rem; white-space: nowrap; } .remove { background: transparent; border: 1px solid #e6c877; border-radius: .48rem; color: #927331; cursor: pointer; font: inherit; font-size: .67rem; font-weight: 800; padding: .35rem .48rem; } .remove:hover { background: #fff3c9; }
     .entry { background: #fafbfe; border-top: 1px solid #edf0f5; display: grid; gap: .75rem; padding: .9rem 1.15rem 1.05rem; } .entry h3 { color: #40536e; font-size: .76rem; margin: 0; } .field-grid { display: grid; gap: .65rem; grid-template-columns: minmax(0, 1.4fr) minmax(6rem, .8fr); } .field { display: grid; gap: .32rem; } .field label { color: #63738b; font-size: .68rem; font-weight: 800; } .field input, .field select { background: #fff; border: 1px solid #dce4f0; border-radius: .6rem; color: #30435f; font: inherit; font-size: .76rem; min-width: 0; outline: 0; padding: .62rem .68rem; width: 100%; } .field input:focus, .field select:focus { border-color: #7169eb; box-shadow: 0 0 0 3px rgba(113, 105, 235, .12); } .field input.invalid, .field select.invalid { border-color: #db6875; } .field-error { color: #c54c5a; font-size: .65rem; line-height: 1.25; } .entry-actions { align-items: center; display: flex; gap: .65rem; justify-content: flex-end; } .hint { color: #8997aa; font-size: .66rem; line-height: 1.35; margin-right: auto; } .primary { background: #6159e9; border: 0; border-radius: .62rem; box-shadow: 0 8px 18px rgba(91, 80, 224, .18); color: #fff; cursor: pointer; font: inherit; font-size: .73rem; font-weight: 800; padding: .66rem .78rem; } .primary:disabled { cursor: not-allowed; opacity: .6; } .read-only { background: #f8f9fc; border-top: 1px solid #edf0f5; color: #7c8ba0; font-size: .7rem; line-height: 1.4; margin: 0; padding: .8rem 1.15rem; }
     .save-all { align-items: center; background: linear-gradient(110deg, #f2f1ff, #f7f6ff); border: 1px solid #dcd9ff; border-radius: 1rem; display: flex; gap: 1rem; justify-content: space-between; margin-top: 1rem; padding: .9rem 1rem; } .save-all strong { color: #413b9e; display: block; font-size: .82rem; } .save-all p { color: #6f7394; font-size: .7rem; margin: .22rem 0 0; } .save-all .primary { white-space: nowrap; }
-    .routine-panel { background: #fff; border: 1px solid #e1e5f5; border-radius: 1rem; margin-top: 1rem; overflow: hidden; } .routine-head { align-items: flex-start; background: linear-gradient(110deg, #f6f5ff, #f7fbff); border-bottom: 1px solid #e5e8f6; display: flex; gap: 1rem; justify-content: space-between; padding: 1.05rem 1.15rem; } .routine-head h2 { color: #2f3f60; font-size: 1.05rem; margin: 0; } .batch-tabs { display: flex; gap: .5rem; overflow-x: auto; padding: .85rem 1.15rem; } .batch-tab { background: #fff; border: 1px solid #dbe3f1; border-radius: 100px; color: #62738a; cursor: pointer; font: inherit; font-size: .71rem; font-weight: 750; padding: .45rem .68rem; white-space: nowrap; } .batch-tab.selected { background: #6259e9; border-color: #6259e9; color: #fff; } .routine-board-wrap { overflow-x: auto; padding: 0 1.15rem 1.1rem; } .routine-board { display: grid; gap: .65rem; grid-template-columns: repeat(7, minmax(9.5rem, 1fr)); min-width: 68rem; } .routine-day { background: #fafbfe; border: 1px solid #e9edf5; border-radius: .75rem; min-height: 12rem; overflow: hidden; } .routine-day-head { background: #f1f0ff; color: #554ec6; display: flex; font-size: .73rem; font-weight: 800; justify-content: space-between; padding: .55rem .62rem; } .routine-slots { display: grid; gap: .45rem; padding: .5rem; } .routine-slot { background: #fff; border: 1px solid #dfe5f1; border-left: 3px solid #6b63e8; border-radius: .52rem; display: grid; gap: .25rem; padding: .5rem; } .routine-time { color: #5c54cd; font-size: .64rem; font-weight: 850; } .link-button { background: transparent; border: 0; color: #5f57d7; cursor: pointer; font: inherit; font-size: .63rem; font-weight: 800; padding: .1rem 0; } .link-button.danger { color: #c35461; } .routine-fields { display: grid; gap: .65rem; grid-template-columns: minmax(8rem, 1.35fr) minmax(7rem, .85fr) repeat(2, minmax(6.5rem, .7fr)) minmax(7rem, .8fr); } .secondary { background: #fff; border: 1px solid #d7deeb; border-radius: .62rem; color: #62738a; cursor: pointer; font: inherit; font-size: .73rem; font-weight: 800; padding: .62rem .75rem; } .secondary:disabled { cursor: not-allowed; opacity: .6; } .routine-read-only { background: #f8f9fc; border-top: 1px solid #edf0f5; color: #7c8ba0; font-size: .7rem; line-height: 1.4; margin: 0; padding: .8rem 1.15rem; }
+    .routine-panel { background: #fff; border: 1px solid #e1e5f5; border-radius: 1rem; margin-top: 1rem; overflow: hidden; } .routine-head { align-items: flex-start; background: linear-gradient(110deg, #f6f5ff, #f7fbff); border-bottom: 1px solid #e5e8f6; display: flex; gap: 1rem; justify-content: space-between; padding: 1.05rem 1.15rem; } .routine-head h2 { color: #2f3f60; margin: 0; } .batch-tabs { display: flex; gap: .5rem; overflow-x: auto; padding: .85rem 1.15rem; } .batch-tab { background: #fff; border: 1px solid #dbe3f1; border-radius: 100px; color: #62738a; cursor: pointer; font: inherit; font-size: .71rem; font-weight: 750; padding: .45rem .68rem; white-space: nowrap; } .batch-tab.selected { background: #6259e9; border-color: #6259e9; color: #fff; } .routine-board-wrap { overflow-x: auto; padding: 0 1.15rem 1.1rem; } .routine-board { display: grid; gap: .65rem; grid-template-columns: repeat(7, minmax(9.5rem, 1fr)); min-width: 68rem; } .routine-day { background: #fafbfe; border: 1px solid #e9edf5; border-radius: .75rem; min-height: 12rem; overflow: hidden; } .routine-day-head { background: #f1f0ff; color: #554ec6; display: flex; font-size: .73rem; font-weight: 800; justify-content: space-between; padding: .55rem .62rem; } .routine-slots { display: grid; gap: .45rem; padding: .5rem; } .routine-slot { background: #fff; border: 1px solid #dfe5f1; border-left: 3px solid #6b63e8; border-radius: .52rem; display: grid; gap: .25rem; padding: .5rem; } .routine-time { color: #5c54cd; font-size: .64rem; font-weight: 850; } .link-button { background: transparent; border: 0; color: #5f57d7; cursor: pointer; font: inherit; font-size: .63rem; font-weight: 800; padding: .1rem 0; } .link-button.danger { color: #c35461; } .routine-fields { display: grid; gap: .65rem; grid-template-columns: minmax(8rem, 1.35fr) minmax(7rem, .85fr) repeat(2, minmax(6.5rem, .7fr)) minmax(7rem, .8fr) minmax(8rem, 1fr); } .secondary { background: #fff; border: 1px solid #d7deeb; border-radius: .62rem; color: #62738a; cursor: pointer; font: inherit; font-size: .73rem; font-weight: 800; padding: .62rem .75rem; } .secondary:disabled { cursor: not-allowed; opacity: .6; } .routine-read-only { background: #f8f9fc; border-top: 1px solid #edf0f5; color: #7c8ba0; font-size: .7rem; line-height: 1.4; margin: 0; padding: .8rem 1.15rem; }
     .loading { align-items: center; color: #78879c; display: flex; font-size: .73rem; gap: .45rem; } .loading i { animation: pulse 1s ease-in-out infinite alternate; background: #736be9; border-radius: 50%; height: .45rem; width: .45rem; } @keyframes pulse { from { opacity: .35; } to { opacity: 1; } }
     @media (max-width: 850px) { .class-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .setup-grid { grid-template-columns: 1fr; } .routine-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } } @media (max-width: 650px) { .page-head, .class-picker-head, .save-all, .routine-head { align-items: stretch; flex-direction: column; } .class-caption { text-align: left; } .summary { grid-template-columns: 1fr; } .class-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .field-grid, .routine-fields { grid-template-columns: 1fr; } } @media (max-width: 400px) { .class-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .entry-actions { align-items: stretch; flex-direction: column; } .hint { margin-right: 0; } .primary { width: 100%; } }
   `,
@@ -99,6 +99,7 @@ import {
                         <span class="routine-time">{{ formatRoutineTime(slot.startTime) }} - {{ formatRoutineTime(slot.endTime) }}</span>
                         <strong class="record-title">{{ slot.subjectName }}</strong>
                         <span class="record-code">{{ slot.subjectCode }} / {{ slot.roomCode }}</span>
+                        @if (slot.teacherName) { <span class="record-code">Teacher: {{ slot.teacherName }}</span> }
                         @if (canManage()) {
                           <div class="entry-actions"><button class="link-button" type="button" (click)="editRoutine(slot)" [disabled]="routineSaving()">Edit</button><button class="link-button danger" type="button" (click)="deleteRoutine(slot)" [disabled]="routineSaving()">Remove</button></div>
                         }
@@ -123,6 +124,7 @@ import {
                 <div class="field"><label for="routine-start">Start</label><input id="routine-start" type="time" formControlName="startTime" [class.invalid]="routineInvalid('startTime')" />@if (routineInvalid('startTime')) { <small class="field-error">Enter a start time.</small> }</div>
                 <div class="field"><label for="routine-end">End</label><input id="routine-end" type="time" formControlName="endTime" [class.invalid]="routineInvalid('endTime')" />@if (routineInvalid('endTime')) { <small class="field-error">Enter a later end time.</small> }</div>
                 <div class="field"><label for="routine-room">Room</label><input id="routine-room" formControlName="roomCode" maxlength="60" placeholder="e.g. R-201" [class.invalid]="routineInvalid('roomCode')" />@if (routineInvalid('roomCode')) { <small class="field-error">Enter a room.</small> }</div>
+                <div class="field"><label for="routine-teacher">Teacher <span>(optional)</span></label><input id="routine-teacher" formControlName="teacherName" maxlength="100" placeholder="e.g. Ayesha Rahman" [class.invalid]="routineInvalid('teacherName')" />@if (routineInvalid('teacherName')) { <small class="field-error">Teacher name must be 100 characters or fewer.</small> }</div>
               </div>
               <div class="entry-actions"><span class="hint">Times that overlap another lesson for this batch will be rejected.</span>@if (editingRoutineId() || routineForm.dirty) { <button class="secondary" type="button" (click)="cancelRoutineEdit()" [disabled]="routineSaving()">{{ editingRoutineId() ? 'Cancel' : 'Clear' }}</button> }<button class="primary" type="submit" [disabled]="routineSaving()">{{ routineSaving() ? 'Saving...' : editingRoutineId() ? 'Update lesson' : 'Add lesson' }}</button></div>
             </form>
@@ -248,6 +250,7 @@ export class AcademicPageComponent implements OnInit {
     startTime: ['09:00', Validators.required],
     endTime: ['10:00', Validators.required],
     roomCode: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(60)]],
+    teacherName: ['', Validators.maxLength(100)],
   });
 
   ngOnInit(): void {
@@ -467,6 +470,7 @@ export class AcademicPageComponent implements OnInit {
       startTime: value.startTime,
       endTime: value.endTime,
       roomCode: normalizeName(value.roomCode),
+      teacherName: normalizeName(value.teacherName) || null,
     };
     const editingId = this.editingRoutineId();
     this.routineSaving.set(true);
@@ -501,6 +505,7 @@ export class AcademicPageComponent implements OnInit {
       startTime: timeForInput(slot.startTime),
       endTime: timeForInput(slot.endTime),
       roomCode: slot.roomCode,
+      teacherName: slot.teacherName ?? '',
     });
     this.routineForm.markAsPristine();
     this.routineForm.markAsUntouched();
@@ -552,7 +557,7 @@ export class AcademicPageComponent implements OnInit {
     return timeForInput(time);
   }
 
-  routineInvalid(name: 'subjectId' | 'dayOfWeek' | 'startTime' | 'endTime' | 'roomCode'): boolean {
+  routineInvalid(name: 'subjectId' | 'dayOfWeek' | 'startTime' | 'endTime' | 'roomCode' | 'teacherName'): boolean {
     const control = this.routineForm.controls[name];
     return control.invalid && (control.dirty || control.touched);
   }
@@ -608,6 +613,7 @@ export class AcademicPageComponent implements OnInit {
       startTime: '09:00',
       endTime: '10:00',
       roomCode: '',
+      teacherName: '',
     });
     this.routineForm.markAsPristine();
     this.routineForm.markAsUntouched();

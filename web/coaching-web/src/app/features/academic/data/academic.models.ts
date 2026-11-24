@@ -61,6 +61,7 @@ export interface AcademicRoutineSlot {
   startTime: string;
   endTime: string;
   roomCode: string;
+  teacherName: string | null;
 }
 
 export interface SaveAcademicRoutineRequest {
@@ -70,4 +71,5 @@ export interface SaveAcademicRoutineRequest {
   startTime: string;
   endTime: string;
   roomCode: string;
+  teacherName: string | null;
 }

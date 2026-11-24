@@ -14,6 +14,7 @@ public class BatchRoutineSlot : Entity
     public TimeOnly StartTime { get; private set; }
     public TimeOnly EndTime { get; private set; }
     public string RoomCode { get; private set; } = default!;
+    public string? TeacherName { get; private set; }
 
     private BatchRoutineSlot() { }
 
@@ -23,9 +24,10 @@ public class BatchRoutineSlot : Entity
         int dayOfWeek,
         TimeOnly startTime,
         TimeOnly endTime,
-        string roomCode)
+        string roomCode,
+        string? teacherName = null)
     {
-        SetValues(batchId, subjectId, dayOfWeek, startTime, endTime, roomCode);
+        SetValues(batchId, subjectId, dayOfWeek, startTime, endTime, roomCode, teacherName);
     }
 
     public void Update(
@@ -34,8 +36,9 @@ public class BatchRoutineSlot : Entity
         int dayOfWeek,
         TimeOnly startTime,
         TimeOnly endTime,
-        string roomCode) =>
-        SetValues(batchId, subjectId, dayOfWeek, startTime, endTime, roomCode);
+        string roomCode,
+        string? teacherName = null) =>
+        SetValues(batchId, subjectId, dayOfWeek, startTime, endTime, roomCode, teacherName);
 
     private void SetValues(
         Guid batchId,
@@ -43,7 +46,8 @@ public class BatchRoutineSlot : Entity
         int dayOfWeek,
         TimeOnly startTime,
         TimeOnly endTime,
-        string roomCode)
+        string roomCode,
+        string? teacherName)
     {
         if (batchId == Guid.Empty) throw new ArgumentException("Batch is required.", nameof(batchId));
         if (subjectId == Guid.Empty) throw new ArgumentException("Subject is required.", nameof(subjectId));
@@ -57,5 +61,6 @@ public class BatchRoutineSlot : Entity
         StartTime = startTime;
         EndTime = endTime;
         RoomCode = roomCode;
+        TeacherName = teacherName;
     }
 }

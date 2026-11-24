@@ -30,6 +30,7 @@ public class AcademicDbContext(DbContextOptions<AcademicDbContext> options) : Db
         builder.Entity<BatchRoutineSlot>(entity =>
         {
             entity.Property(slot => slot.RoomCode).HasMaxLength(60);
+            entity.Property(slot => slot.TeacherName).HasMaxLength(100);
             entity.Property(slot => slot.StartTime).HasColumnType("time without time zone");
             entity.Property(slot => slot.EndTime).HasColumnType("time without time zone");
             entity.HasIndex(slot => new { slot.BatchId, slot.DayOfWeek, slot.StartTime }).IsUnique();

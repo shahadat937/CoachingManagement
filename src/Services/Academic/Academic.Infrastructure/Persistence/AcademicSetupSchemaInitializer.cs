@@ -42,6 +42,7 @@ public static class AcademicSetupSchemaInitializer
                 "StartTime" time without time zone NOT NULL,
                 "EndTime" time without time zone NOT NULL,
                 "RoomCode" character varying(60) NOT NULL,
+                "TeacherName" character varying(100) NULL,
                 CONSTRAINT "PK_BatchRoutineSlots" PRIMARY KEY ("Id"),
                 CONSTRAINT "CK_BatchRoutineSlots_DayOfWeek" CHECK ("DayOfWeek" BETWEEN 1 AND 7),
                 CONSTRAINT "CK_BatchRoutineSlots_TimeRange" CHECK ("EndTime" > "StartTime"),
@@ -50,6 +51,9 @@ public static class AcademicSetupSchemaInitializer
                 CONSTRAINT "FK_BatchRoutineSlots_Subjects_SubjectId"
                     FOREIGN KEY ("SubjectId") REFERENCES "Subjects" ("Id") ON DELETE CASCADE
             );
+
+            ALTER TABLE "BatchRoutineSlots"
+                ADD COLUMN IF NOT EXISTS "TeacherName" character varying(100) NULL;
 
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_BatchRoutineSlots_BatchId_DayOfWeek_StartTime"
                 ON "BatchRoutineSlots" ("BatchId", "DayOfWeek", "StartTime");

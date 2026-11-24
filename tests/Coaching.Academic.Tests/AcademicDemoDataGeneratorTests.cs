@@ -67,6 +67,7 @@ public class AcademicDemoDataGeneratorTests
             Assert.Equal(AcademicDemoDataGenerator.RoutineSlotsPerBatch, routine.Length);
             Assert.All(routine, slot => Assert.InRange(slot.DayOfWeek, 1, 5));
             Assert.All(routine, slot => Assert.True(slot.EndTime > slot.StartTime));
+            Assert.All(routine, slot => Assert.False(string.IsNullOrWhiteSpace(slot.TeacherName)));
 
             foreach (var day in routine.GroupBy(slot => slot.DayOfWeek))
             {

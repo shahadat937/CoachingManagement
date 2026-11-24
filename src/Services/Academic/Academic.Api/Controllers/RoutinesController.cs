@@ -40,7 +40,8 @@ public sealed class RoutinesController(ISender sender) : ControllerBase
                 request.DayOfWeek,
                 request.StartTime,
                 request.EndTime,
-                request.RoomCode), ct);
+                request.RoomCode,
+                request.TeacherName), ct);
             return Created($"/api/academic/routines/{routine.Id}", routine);
         }
         catch (AcademicInputException exception)
@@ -70,7 +71,8 @@ public sealed class RoutinesController(ISender sender) : ControllerBase
                 request.DayOfWeek,
                 request.StartTime,
                 request.EndTime,
-                request.RoomCode), ct));
+                request.RoomCode,
+                request.TeacherName), ct));
         }
         catch (AcademicInputException exception)
         {
@@ -133,4 +135,5 @@ public sealed record RoutineRequest(
     int DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    string? RoomCode);
+    string? RoomCode,
+    string? TeacherName = null);

@@ -94,13 +94,13 @@ public static class AcademicDemoDataSeeder
                 .Select(batch => new DemoBatchReference(batch.Id, batch.ClassLevel, batch.Code!))
                 .ToListAsync(ct))
             .ToDictionary(item => CodeKey(item.ClassLevel, item.Code), item => item.Id, StringComparer.OrdinalIgnoreCase);
-        var existingRoutineKeys = (await db.BatchRoutineSlots
-                .AsNoTracking()
-                .Where(slot => batchIds.Values.Contains(slot.BatchId))
-                .Select(slot => new RoutineSlotKey(slot.BatchId, slot.DayOfWeek, slot.StartTime))
-                .ToListAsync(ct))
+        var existingDemoRoutineSlots = await db.BatchRoutineSlots
+            .Where(slot => batchIds.Values.Contains(slot.BatchId))
+            .ToListAsync(ct);
+        var existingRoutineKeys = existingDemoRoutineSlots
+            .Select(slot => new RoutineSlotKey(slot.BatchId, slot.DayOfWeek, slot.StartTime))
             .ToHashSet();
-        var routinesToAdd = demoData.Routines
+        var demoRoutineEntries = demoData.Routines
             .Select(item => new
             {
                 Item = item,
@@ -108,6 +108,12 @@ public static class AcademicDemoDataSeeder
                 SubjectId = subjectIds.GetValueOrDefault(CodeKey(item.ClassLevel, item.SubjectCode)),
             })
             .Where(item => item.BatchId != Guid.Empty && item.SubjectId != Guid.Empty)
+            .ToArray();
+        var expectedRoutineEntries = demoRoutineEntries
+            .ToDictionary(
+                item => new RoutineSlotKey(item.BatchId, item.Item.DayOfWeek, item.Item.StartTime),
+                item => item);
+        var routinesToAdd = demoRoutineEntries
             .Where(item => !existingRoutineKeys.Contains(new RoutineSlotKey(
                 item.BatchId,
                 item.Item.DayOfWeek,
@@ -118,20 +124,46 @@ public static class AcademicDemoDataSeeder
                 item.Item.DayOfWeek,
                 item.Item.StartTime,
                 item.Item.EndTime,
-                item.Item.RoomCode))
+                item.Item.RoomCode,
+                item.Item.TeacherName))
             .ToArray();
 
-        if (routinesToAdd.Length > 0)
+        var teacherNamesUpdated = 0;
+        foreach (var slot in existingDemoRoutineSlots)
         {
-            await db.BatchRoutineSlots.AddRangeAsync(routinesToAdd, ct);
-            await db.SaveChangesAsync(ct);
+            if (!string.IsNullOrWhiteSpace(slot.TeacherName)
+                || !expectedRoutineEntries.TryGetValue(
+                    new RoutineSlotKey(slot.BatchId, slot.DayOfWeek, slot.StartTime),
+                    out var expected)
+                || slot.SubjectId != expected.SubjectId
+                || slot.EndTime != expected.Item.EndTime
+                || !string.Equals(slot.RoomCode, expected.Item.RoomCode, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            slot.Update(
+                slot.BatchId,
+                slot.SubjectId,
+                slot.DayOfWeek,
+                slot.StartTime,
+                slot.EndTime,
+                slot.RoomCode,
+                expected.Item.TeacherName);
+            teacherNamesUpdated++;
         }
 
+        if (routinesToAdd.Length > 0)
+            await db.BatchRoutineSlots.AddRangeAsync(routinesToAdd, ct);
+        if (routinesToAdd.Length > 0 || teacherNamesUpdated > 0)
+            await db.SaveChangesAsync(ct);
+
         logger.LogInformation(
-            "Academic demo data ready: {SubjectsInserted} subjects, {BatchesInserted} batches, and {RoutinesInserted} routine slots inserted.",
+            "Academic demo data ready: {SubjectsInserted} subjects, {BatchesInserted} batches, {RoutinesInserted} routine slots inserted, and {TeacherNamesUpdated} teacher names updated.",
             subjectsToAdd.Length,
             batchesToAdd.Length,
-            routinesToAdd.Length);
+            routinesToAdd.Length,
+            teacherNamesUpdated);
     }
 
     private static string NameKey(int classLevel, string name) => $"{classLevel}\u001F{name.Trim()}";
@@ -153,7 +185,8 @@ internal sealed record DemoAcademicRoutineData(
     int DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    string RoomCode);
+    string RoomCode,
+    string TeacherName);
 internal sealed record DemoAcademicData(
     IReadOnlyList<DemoAcademicSubjectData> Subjects,
     IReadOnlyList<DemoAcademicBatchData> Batches,
@@ -186,6 +219,17 @@ internal static class AcademicDemoDataGenerator
         ("Day Batch", "DAY"),
         ("Evening Batch", "EVE"),
     ];
+
+    private static readonly IReadOnlyDictionary<string, string> TeachersBySubjectCode =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["BAN"] = "Nusrat Jahan",
+            ["ENG"] = "Amina Rahman",
+            ["MAT"] = "Farhan Ahmed",
+            ["SCI"] = "Rafi Hossain",
+            ["ICT"] = "Maliha Akter",
+            ["SOC"] = "Sadia Islam",
+        };
 
     private static readonly (int DayOfWeek, string SubjectCode, TimeOnly StartTime, TimeOnly EndTime)[] RoutineTemplates =
     [
@@ -240,7 +284,8 @@ internal static class AcademicDemoDataGenerator
                         routineTemplate.DayOfWeek,
                         routineTemplate.StartTime,
                         routineTemplate.EndTime,
-                        $"R-{classLevel:D2}-{batchIndex + 1}"));
+                        $"R-{classLevel:D2}-{batchIndex + 1}",
+                        TeachersBySubjectCode[routineTemplate.SubjectCode]));
                 }
             }
         }

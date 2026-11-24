@@ -153,7 +153,7 @@ public class AcademicSetupTests
     }
 
     [Fact]
-    public async Task Routine_creation_links_a_class_subject_to_its_batch_and_normalizes_the_room()
+    public async Task Routine_creation_links_a_class_subject_to_its_batch_and_normalizes_room_and_teacher()
     {
         var store = new InMemoryAcademicStore();
         var subject = Subject(8, "Mathematics", "MATH-08");
@@ -168,15 +168,66 @@ public class AcademicSetupTests
                 1,
                 new TimeOnly(9, 0),
                 new TimeOnly(9, 50),
-                "  Room   201 "),
+                "  Room   201 ",
+                "  Ms.   Nabila  "),
             CancellationToken.None);
 
         Assert.Equal(batch.Id, routine.BatchId);
         Assert.Equal(subject.Id, routine.SubjectId);
         Assert.Equal("Mathematics", routine.SubjectName);
         Assert.Equal("Room 201", routine.RoomCode);
+        Assert.Equal("Ms. Nabila", routine.TeacherName);
         Assert.Single(store.RoutineSlots);
         Assert.Equal(1, store.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task Routine_creation_rejects_a_teacher_name_longer_than_100_characters()
+    {
+        var store = new InMemoryAcademicStore();
+        var subject = Subject(8, "Mathematics", "MATH-08");
+        var batch = Batch(8, "Morning", "M-8");
+        store.Subjects.Add(subject);
+        store.Batches.Add(batch);
+
+        var exception = await Assert.ThrowsAsync<AcademicInputException>(() =>
+            new CreateBatchRoutineHandler(store).Handle(
+                new CreateBatchRoutineCommand(
+                    batch.Id,
+                    subject.Id,
+                    1,
+                    new TimeOnly(9, 0),
+                    new TimeOnly(9, 50),
+                    "R-201",
+                    new string('A', 101)),
+                CancellationToken.None));
+
+        Assert.Equal("teacherName", exception.Field);
+        Assert.Empty(store.RoutineSlots);
+    }
+
+    [Fact]
+    public async Task Routine_creation_treats_a_blank_teacher_name_as_missing()
+    {
+        var store = new InMemoryAcademicStore();
+        var subject = Subject(8, "Mathematics", "MATH-08");
+        var batch = Batch(8, "Morning", "M-8");
+        store.Subjects.Add(subject);
+        store.Batches.Add(batch);
+
+        var routine = await new CreateBatchRoutineHandler(store).Handle(
+            new CreateBatchRoutineCommand(
+                batch.Id,
+                subject.Id,
+                1,
+                new TimeOnly(9, 0),
+                new TimeOnly(9, 50),
+                "R-201",
+                "   "),
+            CancellationToken.None);
+
+        Assert.Null(routine.TeacherName);
+        Assert.Null(store.RoutineSlots.Single().TeacherName);
     }
 
     [Fact]
@@ -257,13 +308,15 @@ public class AcademicSetupTests
                 1,
                 new TimeOnly(9, 0),
                 new TimeOnly(9, 50),
-                "R-203"),
+                "R-203",
+                " Mr. Hasan "),
             CancellationToken.None);
         var listed = await new ListBatchRoutineHandler(store).Handle(new ListBatchRoutineQuery(batch.Id), CancellationToken.None);
         await new DeleteBatchRoutineHandler(store).Handle(new DeleteBatchRoutineCommand(monday.Id), CancellationToken.None);
 
         Assert.Equal("English", updated.SubjectName);
         Assert.Equal("R-203", updated.RoomCode);
+        Assert.Equal("Mr. Hasan", updated.TeacherName);
         Assert.Equal(2, listed.Count);
         Assert.Equal(1, listed[0].DayOfWeek);
         Assert.Equal(2, listed[1].DayOfWeek);
