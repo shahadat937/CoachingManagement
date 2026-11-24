@@ -44,19 +44,37 @@ public class StudentConflictException : Exception
     public string Field { get; }
 }
 
-public record ListStudentsQuery(bool IsActive = true) : IRequest<IReadOnlyList<StudentResponse>>;
+public sealed record StudentPageResponse(
+    IReadOnlyList<StudentResponse> Items,
+    int TotalCount,
+    int Page,
+    int PageSize,
+    int TotalPages);
 
-public class ListStudentsHandler(IStudentStore store) : IRequestHandler<ListStudentsQuery, IReadOnlyList<StudentResponse>>
+public record ListStudentsQuery(bool IsActive = true, int Page = 1, int PageSize = 10) : IRequest<StudentPageResponse>;
+
+public class ListStudentsHandler(IStudentStore store) : IRequestHandler<ListStudentsQuery, StudentPageResponse>
 {
-    public async Task<IReadOnlyList<StudentResponse>> Handle(ListStudentsQuery query, CancellationToken ct)
+    public async Task<StudentPageResponse> Handle(ListStudentsQuery query, CancellationToken ct)
     {
-        var students = await store.ListAsync(query.IsActive, ct);
-        var photos = await store.ListPhotoMetadataAsync(ct);
-        return students.Select(student =>
+        if (query.Page < 1)
+            throw new StudentInputException("page", "Page must be at least 1.");
+
+        if (query.PageSize is < 1 or > 100)
+            throw new StudentInputException("pageSize", "Page size must be between 1 and 100.");
+
+        var totalCount = await store.CountAsync(query.IsActive, ct);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)query.PageSize));
+        var page = Math.Min(query.Page, totalPages);
+        var students = await store.ListPageAsync(query.IsActive, (page - 1) * query.PageSize, query.PageSize, ct);
+        var photos = await store.ListPhotoMetadataAsync(students.Select(student => student.Id).ToArray(), ct);
+        var items = students.Select(student =>
         {
             photos.TryGetValue(student.Id, out var photo);
             return StudentResponse.From(student, photo);
         }).ToList();
+
+        return new StudentPageResponse(items, totalCount, page, query.PageSize, totalPages);
     }
 }
 

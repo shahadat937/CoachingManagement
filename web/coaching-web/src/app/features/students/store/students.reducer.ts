@@ -5,6 +5,10 @@ import { StudentsActions as A } from './students.actions';
 export interface StudentsState {
   students: Student[];
   isActiveFilter: boolean;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   loading: boolean;
   saving: boolean;
   uploadingPhotoId: string | null;
@@ -16,6 +20,10 @@ export interface StudentsState {
 const initialState: StudentsState = {
   students: [],
   isActiveFilter: true,
+  page: 1,
+  pageSize: 10,
+  totalCount: 0,
+  totalPages: 0,
   loading: false,
   saving: false,
   uploadingPhotoId: null,
@@ -28,22 +36,29 @@ export const studentsFeature = createFeature({
   name: 'students',
   reducer: createReducer(
     initialState,
-    on(A.load, (state, { isActive }) => ({
+    on(A.load, (state, { isActive, page, pageSize }) => ({
       ...state,
       students: [],
       photoUrls: {},
       isActiveFilter: isActive,
+      page,
+      pageSize,
       loading: true,
       error: null,
     })),
-    on(A.loadSuccess, (state, { students }) => ({ ...state, students, loading: false })),
+    on(A.loadSuccess, (state, { result }) => ({
+      ...state,
+      students: result.items,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      loading: false,
+    })),
     on(A.loadFailure, (state, { error }) => ({ ...state, loading: false, error })),
     on(A.create, (state) => ({ ...state, saving: true, error: null, success: null })),
     on(A.createSuccess, (state, { student }) => ({
       ...state,
-      students: state.isActiveFilter && student.isActive
-        ? [student, ...state.students.filter((item) => item.id !== student.id)]
-        : state.students,
       saving: false,
       success: `${student.fullName} was added to the student directory.`,
     })),
@@ -112,6 +127,11 @@ export const studentsFeature = createFeature({
 
 export const {
   selectStudents,
+  selectIsActiveFilter,
+  selectPage: selectCurrentPage,
+  selectPageSize,
+  selectTotalCount,
+  selectTotalPages,
   selectLoading,
   selectSaving,
   selectUploadingPhotoId,

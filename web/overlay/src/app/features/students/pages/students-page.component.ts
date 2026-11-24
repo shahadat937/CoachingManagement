@@ -8,12 +8,16 @@ import { StudentPhotoUrls } from '../data/student-photo-urls.service';
 import { Student } from '../data/student.models';
 import { StudentsActions } from '../store/students.actions';
 import {
+  selectCurrentPage,
   selectError,
   selectLoading,
+  selectPageSize,
   selectPhotoUrls,
   selectSaving,
   selectStudents,
   selectSuccess,
+  selectTotalCount,
+  selectTotalPages,
   selectUploadingPhotoId,
 } from '../store/students.reducer';
 
@@ -39,7 +43,7 @@ import {
     .table-wrap { overflow-x: auto; } table { border-collapse: collapse; min-width: 44rem; width: 100%; } th { background: #fafbfe; border-bottom: 1px solid #e9edf5; color: #77869d; font-size: .68rem; font-weight: 800; letter-spacing: .05em; padding: .72rem 1.1rem; text-align: left; text-transform: uppercase; } td { border-bottom: 1px solid #eef1f6; color: #445570; font-size: .78rem; padding: .92rem 1.1rem; white-space: nowrap; } tr:last-child td { border-bottom: 0; } .student-name { color: #2f415d; font-weight: 750; } .student-identity { align-items: center; display: flex; gap: .6rem; } .avatar { align-items: center; background: linear-gradient(135deg, #eeeefe, #dceff7); border-radius: 50%; color: #5d58c9; display: inline-flex; font-weight: 800; height: 2rem; justify-content: center; overflow: hidden; width: 2rem; } .avatar img { height: 100%; object-fit: cover; width: 100%; } .student-number { color: #635be8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; font-weight: 700; } .muted { color: #8290a5; } .device { background: #f1efff; border-radius: 100px; color: #655cdb; display: inline-flex; font-size: .67rem; font-weight: 750; padding: .25rem .5rem; }
     .photo-avatar { cursor: zoom-in; } .photo-avatar:focus-visible { outline: 3px solid rgba(97, 89, 233, .42); outline-offset: 3px; } .passport-photo-popover { background: #fff; border: 1px solid #dfe5f0; border-radius: .85rem; box-shadow: 0 18px 40px rgba(28, 43, 70, .25); box-sizing: border-box; padding: .45rem; pointer-events: none; position: fixed; width: 8rem; z-index: 40; } .passport-photo-popover img { aspect-ratio: 7 / 9; border-radius: .5rem; display: block; object-fit: cover; width: 100%; } .passport-photo-popover strong { color: #2d405c; display: block; font-size: .68rem; margin: .48rem .15rem 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .passport-photo-popover span { color: #7d8ba0; display: block; font-size: .62rem; margin: .18rem .15rem .05rem; }
     .row-actions { align-items: center; display: flex; gap: .4rem; } .danger-action { color: #b64d5c; } .danger-primary { background: #c84e5f; box-shadow: 0 10px 22px rgba(184, 69, 84, .18); }
-    .footer { align-items: center; border-top: 1px solid #eef1f6; color: #8391a5; display: flex; font-size: .72rem; justify-content: space-between; padding: .8rem 1.2rem; } .endpoint { color: #665eea; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .68rem; } .empty { color: #8492a7; font-size: .82rem; padding: 2.4rem 1.2rem; text-align: center; } .empty strong { color: #40536e; display: block; font-size: .92rem; margin-bottom: .3rem; }
+    .footer { align-items: center; border-top: 1px solid #eef1f6; color: #8391a5; display: flex; font-size: .72rem; justify-content: space-between; padding: .8rem 1.2rem; } .empty { color: #8492a7; font-size: .82rem; padding: 2.4rem 1.2rem; text-align: center; } .empty strong { color: #40536e; display: block; font-size: .92rem; margin-bottom: .3rem; }
     .dialog-backdrop { align-items: stretch; background: rgba(18, 32, 55, .45); display: flex; justify-content: flex-end; inset: 0; padding: 0; position: fixed; z-index: 30; } .dialog { background: #fff; box-shadow: -16px 0 44px rgba(20, 36, 62, .2); display: flex; flex-direction: column; max-width: 31rem; overflow-y: auto; padding: 1.3rem; width: min(100%, 31rem); } .dialog-head { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.35rem; } .dialog-head h2 { color: #20334f; font-size: 1.2rem; letter-spacing: -.03em; margin: .15rem 0 0; } .dialog-head p { color: #78879e; font-size: .77rem; line-height: 1.45; margin: .4rem 0 0; } .close { align-items: center; background: #f4f6fa; border: 0; border-radius: .55rem; color: #63738c; cursor: pointer; display: inline-flex; font-size: 1.18rem; height: 2rem; justify-content: center; width: 2rem; }
     form { display: grid; gap: 1rem; } .field { display: grid; gap: .42rem; } .field label, .photo-label { color: #40536e; font-size: .76rem; font-weight: 750; } .optional { color: #91a0b2; font-size: .68rem; font-weight: 600; } .field input, .field select { background: #fff; border: 1px solid #dce4f0; border-radius: .62rem; box-sizing: border-box; color: #30435f; font: inherit; font-size: .84rem; padding: .7rem .75rem; width: 100%; } .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #71819a 50%), linear-gradient(135deg, #71819a 50%, transparent 50%); background-position: calc(100% - 15px) calc(50% - 2px), calc(100% - 10px) calc(50% - 2px); background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; } .field input::placeholder { color: #a7b1bf; } .field input.invalid, .field select.invalid { border-color: #df7180; } .help, .field-error { font-size: .7rem; line-height: 1.35; margin: 0; } .help { color: #8997aa; } .field-error { color: #c54c5a; }
     .photo-field { display: grid; gap: .5rem; } .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; } .photo-dropzone { align-items: center; background: #fafbff; border: 1px dashed #bfc8ed; border-radius: .8rem; cursor: pointer; display: flex; gap: .8rem; padding: .85rem; } .photo-dropzone:hover, .photo-dropzone.dragging { background: #f2f1ff; border-color: #7169eb; color: #5750c7; } .photo-dropzone svg { fill: none; flex: 0 0 auto; height: 1.5rem; stroke: currentColor; stroke-width: 1.8; width: 1.5rem; } .photo-dropzone strong { color: #465a78; display: block; font-size: .77rem; } .photo-dropzone span { display: block; font-size: .68rem; line-height: 1.35; } .photo-preview { align-items: center; background: #f8faff; border: 1px solid #e2e8f5; border-radius: .8rem; display: flex; gap: .8rem; padding: .7rem; } .preview-image { background: #e9edfa; border-radius: .58rem; height: 3.4rem; object-fit: cover; width: 3.4rem; } .preview-details { min-width: 0; } .preview-details strong { color: #40536e; display: block; font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .preview-details span { color: #8694a9; display: block; font-size: .68rem; margin-top: .18rem; } .preview-actions { display: flex; gap: .35rem; margin-left: auto; } .text-button { background: transparent; border: 0; color: #6159e9; cursor: pointer; font: inherit; font-weight: 800; padding: .3rem; } .text-button.danger { color: #bd5964; } .photo-error, .form-error { background: #fff4f4; border: 1px solid #ffd7dc; border-radius: .55rem; color: #ad4450; font-size: .7rem; line-height: 1.4; margin: 0; padding: .52rem .62rem; }
@@ -57,7 +61,7 @@ import {
     </section>
 
     <section class="metrics" aria-label="Student directory summary">
-      <article class="metric indigo"><span>{{ isActiveDirectory() ? 'Active learners' : 'Inactive learners' }}</span><strong>{{ students().length }}</strong><small>{{ isActiveDirectory() ? 'Records available for attendance' : 'Archived records retained securely' }}</small></article>
+      <article class="metric indigo"><span>{{ isActiveDirectory() ? 'Active learners' : 'Inactive learners' }}</span><strong>{{ totalCount() }}</strong><small>{{ isActiveDirectory() ? 'Records available for attendance' : 'Archived records retained securely' }}</small></article>
       <article class="metric cyan"><span>Class levels</span><strong>{{ classCount() }}</strong><small>Represented in the current results</small></article>
       <article class="metric violet"><span>Guardian contacts</span><strong>{{ contactCoverage() }}%</strong><small>Records with a contact number</small></article>
     </section>
@@ -73,7 +77,7 @@ import {
             <button class="secondary status-tab" [class.active]="isActiveDirectory()" [attr.aria-pressed]="isActiveDirectory()" type="button" (click)="setDirectoryStatus('active')" [disabled]="isSubmitting()">Active</button>
             <button class="secondary status-tab" [class.active]="!isActiveDirectory()" [attr.aria-pressed]="!isActiveDirectory()" type="button" (click)="setDirectoryStatus('inactive')" [disabled]="isSubmitting()">Inactive</button>
           </div>
-          <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [value]="query()" (input)="setQuery($any($event.target).value)" type="search" placeholder="Find a student" aria-label="Find a student" /></label>
+          <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg><input [value]="query()" (input)="setQuery($any($event.target).value)" type="search" placeholder="Filter this page" aria-label="Filter students on this page" /></label>
         </div>
       </div>
       <div class="table-wrap">
@@ -100,7 +104,7 @@ import {
           <div class="empty"><strong>{{ query().trim() ? 'No matching students' : isActiveDirectory() ? 'No active students yet' : 'No inactive students' }}</strong>{{ query().trim() ? 'Try a student number, class or guardian phone.' : isActiveDirectory() ? 'Add the first learner to begin building your directory.' : 'Inactive learners stay here until you reactivate them.' }}</div>
         }
       </div>
-      <footer class="footer"><span>Showing {{ filteredStudents().length }} of {{ students().length }} {{ isActiveDirectory() ? 'active' : 'inactive' }} students</span><span class="endpoint">GET /api/students?isActive={{ isActiveDirectory() }}</span></footer>
+      <footer class="footer"><span>{{ paginationSummary() }}</span><div class="row-actions" aria-label="Student directory pagination"><label class="muted">Rows <select class="secondary" [value]="pageSize()" (change)="setPageSize($any($event.target).value)" [disabled]="loading() || isSubmitting()" aria-label="Rows per page">@for (size of pageSizes; track size) { <option [value]="size">{{ size }}</option> }</select></label><button class="secondary" type="button" (click)="goToPage(currentPage() - 1)" [disabled]="!canGoPrevious()">Previous</button><span class="muted">Page {{ currentPage() }} of {{ displayTotalPages() }}</span><button class="secondary" type="button" (click)="goToPage(currentPage() + 1)" [disabled]="!canGoNext()">Next</button></div></footer>
     </section>
 
     @if (hoveredPhoto(); as photo) {
@@ -271,6 +275,10 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   readonly saving = this.store.selectSignal(selectSaving);
   readonly uploadingPhotoId = this.store.selectSignal(selectUploadingPhotoId);
   readonly photoUrls = this.store.selectSignal(selectPhotoUrls);
+  readonly currentPage = this.store.selectSignal(selectCurrentPage);
+  readonly pageSize = this.store.selectSignal(selectPageSize);
+  readonly totalCount = this.store.selectSignal(selectTotalCount);
+  readonly totalPages = this.store.selectSignal(selectTotalPages);
   readonly hoveredPhoto = signal<{ fullName: string; classLevel: number; imageUrl: string; left: number; top: number } | null>(null);
   readonly error = this.store.selectSignal(selectError);
   readonly success = this.store.selectSignal(selectSuccess);
@@ -286,13 +294,35 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   readonly photoDropActive = signal(false);
   readonly createdStudentId = signal<string | null>(null);
   readonly classLevels = Array.from({ length: 12 }, (_, index) => index + 1);
+  readonly pageSizes = [10, 25, 50];
   readonly filteredStudents = computed(() => filterStudents(this.students(), this.query()));
   readonly isActiveDirectory = computed(() => this.directoryStatus() === 'active');
+  readonly displayTotalPages = computed(() => Math.max(1, this.totalPages()));
+  readonly canGoPrevious = computed(() => this.currentPage() > 1 && !this.loading() && !this.isSubmitting());
+  readonly canGoNext = computed(() => this.currentPage() < this.totalPages() && !this.loading() && !this.isSubmitting());
   readonly classCount = computed(() => new Set(this.students().map((student) => student.classLevel)).size);
   readonly isSubmitting = computed(() => this.saving() || this.uploadingPhotoId() !== null);
   readonly contactCoverage = computed(() => {
     const students = this.students();
     return students.length ? Math.round((students.filter((student) => !!student.guardianPhone.trim()).length / students.length) * 100) : 0;
+  });
+  readonly paginationSummary = computed(() => {
+    const total = this.totalCount();
+    const students = this.students();
+    const matches = this.filteredStudents().length;
+    const status = this.isActiveDirectory() ? 'active' : 'inactive';
+
+    if (!total || !students.length) {
+      return `Showing 0 of ${total} ${status} students`;
+    }
+
+    if (this.query().trim()) {
+      return `Showing ${matches} matching ${matches === 1 ? 'student' : 'students'} on this page of ${total} ${status}`;
+    }
+
+    const first = (this.currentPage() - 1) * this.pageSize() + 1;
+    const last = Math.min(first + students.length - 1, total);
+    return `Showing ${first}–${last} of ${total} ${status} students`;
   });
   readonly studentForm = this.formBuilder.nonNullable.group({
     studentNo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(64), Validators.pattern(/^[A-Za-z0-9][A-Za-z0-9 -]*$/)]],
@@ -362,7 +392,7 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.store.dispatch(StudentsActions.load({ isActive: true }));
+    this.store.dispatch(StudentsActions.load({ isActive: true, page: 1, pageSize: this.pageSize() }));
   }
 
   openCreateForm(): void {
@@ -467,7 +497,34 @@ export class StudentsPageComponent implements OnInit, OnDestroy {
     this.query.set('');
     this.hidePhotoPreview();
     this.directoryStatus.set(status);
-    this.store.dispatch(StudentsActions.load({ isActive: status === 'active' }));
+    this.store.dispatch(StudentsActions.load({ isActive: status === 'active', page: 1, pageSize: this.pageSize() }));
+  }
+
+  goToPage(page: number): void {
+    if (!Number.isInteger(page) || page < 1 || page === this.currentPage() || this.loading() || this.isSubmitting()) {
+      return;
+    }
+
+    this.hidePhotoPreview();
+    this.store.dispatch(StudentsActions.load({
+      isActive: this.isActiveDirectory(),
+      page,
+      pageSize: this.pageSize(),
+    }));
+  }
+
+  setPageSize(value: string): void {
+    const pageSize = Number(value);
+    if (!this.pageSizes.includes(pageSize) || pageSize === this.pageSize() || this.loading() || this.isSubmitting()) {
+      return;
+    }
+
+    this.hidePhotoPreview();
+    this.store.dispatch(StudentsActions.load({
+      isActive: this.isActiveDirectory(),
+      page: 1,
+      pageSize,
+    }));
   }
 
   setQuery(value: string): void {

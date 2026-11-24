@@ -89,7 +89,7 @@ public class StudentPhotoHandlerTests
         Assert.Single(store.Photos);
         Assert.Equal("image/png", store.Photos[0].ContentType);
 
-        var studentRow = Assert.Single(await new ListStudentsHandler(store).Handle(new ListStudentsQuery(), CancellationToken.None));
+        var studentRow = Assert.Single((await new ListStudentsHandler(store).Handle(new ListStudentsQuery(), CancellationToken.None)).Items);
         Assert.True(studentRow.HasPhoto);
         Assert.Equal(metadata.UpdatedAt, studentRow.PhotoUpdatedAt);
 
@@ -126,13 +126,27 @@ public class StudentPhotoHandlerTests
         public Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default) =>
             Task.FromResult(students.SingleOrDefault(student => student.DeviceUserId == deviceUserId));
 
-        public Task<IReadOnlyList<Student>> ListAsync(bool isActive, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<Student>>(students.Where(student => student.IsActive == isActive).ToList());
+        public Task<int> CountAsync(bool isActive, CancellationToken ct = default) =>
+            Task.FromResult(students.Count(student => student.IsActive == isActive));
 
-        public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos.ToDictionary(
-                photo => photo.StudentId,
-                photo => new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt)));
+        public Task<IReadOnlyList<Student>> ListPageAsync(bool isActive, int skip, int take, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Student>>(students
+                .Where(student => student.IsActive == isActive)
+                .OrderBy(student => student.FullName)
+                .ThenBy(student => student.StudentNo)
+                .ThenBy(student => student.Id)
+                .Skip(skip)
+                .Take(take)
+                .ToList());
+
+        public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(
+            IReadOnlyCollection<Guid> studentIds,
+            CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos
+                .Where(photo => studentIds.Contains(photo.StudentId))
+                .ToDictionary(
+                    photo => photo.StudentId,
+                    photo => new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt)));
 
         public Task<StudentPhotoMetadata?> GetPhotoMetadataAsync(Guid studentId, CancellationToken ct = default)
         {

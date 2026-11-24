@@ -178,7 +178,7 @@ public class StudentCreationTests
         Assert.Equal("DEVICE-01", student.DeviceUserId);
         Assert.Single(store.Photos);
         Assert.Equal(1, store.SaveChangesCalls);
-        Assert.Empty(await new ListStudentsHandler(store).Handle(new ListStudentsQuery(), CancellationToken.None));
+        Assert.Empty((await new ListStudentsHandler(store).Handle(new ListStudentsQuery(), CancellationToken.None)).Items);
 
         var staged = Assert.Single(outbox.Events);
         Assert.Equal(student.Id, staged.StudentId);
@@ -257,7 +257,7 @@ public class StudentCreationTests
         var activeStudents = await new ListStudentsHandler(store).Handle(new ListStudentsQuery(), CancellationToken.None);
         var inactiveStudents = await new ListStudentsHandler(store).Handle(new ListStudentsQuery(false), CancellationToken.None);
 
-        Assert.Single(beforeActivation);
+        Assert.Single(beforeActivation.Items);
         Assert.NotNull(result);
         Assert.True(result.WasActivated);
         Assert.True(student.IsActive);
@@ -266,8 +266,8 @@ public class StudentCreationTests
         Assert.Equal("DEVICE-01", student.DeviceUserId);
         Assert.Single(store.Photos);
         Assert.Equal(1, store.SaveChangesCalls);
-        Assert.Equal(student.Id, Assert.Single(activeStudents).Id);
-        Assert.Empty(inactiveStudents);
+        Assert.Equal(student.Id, Assert.Single(activeStudents.Items).Id);
+        Assert.Empty(inactiveStudents.Items);
 
         var staged = Assert.Single(outbox.Events);
         Assert.Equal(student.Id, staged.StudentId);
@@ -310,6 +310,75 @@ public class StudentCreationTests
         Assert.Null(result);
         Assert.Empty(outbox.Events);
         Assert.Equal(0, store.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task List_returns_a_stable_page_and_loads_photo_metadata_only_for_that_page()
+    {
+        var aminaSecond = new Student { StudentNo = "ST-002", FullName = "Amina Rahman", ClassLevel = 8, GuardianPhone = "+8801712345678" };
+        var aminaFirst = new Student { StudentNo = "ST-001", FullName = "Amina Rahman", ClassLevel = 8, GuardianPhone = "+8801712345679" };
+        var bill = new Student { StudentNo = "ST-003", FullName = "Bill Ahmed", ClassLevel = 8, GuardianPhone = "+8801712345680" };
+        var inactive = new Student { StudentNo = "ST-004", FullName = "Inactive Learner", ClassLevel = 8, GuardianPhone = "+8801712345681", IsActive = false };
+        var store = new InMemoryStudentStore { Students = [bill, inactive, aminaSecond, aminaFirst] };
+        store.Photos.Add(new StudentPhoto
+        {
+            StudentId = bill.Id,
+            Content = [0xFF, 0xD8, 0xFF],
+            ContentType = "image/jpeg",
+            SizeBytes = 3,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        var handler = new ListStudentsHandler(store);
+
+        var firstPage = await handler.Handle(new ListStudentsQuery(IsActive: true, Page: 1, PageSize: 2), CancellationToken.None);
+        var page = await handler.Handle(new ListStudentsQuery(IsActive: true, Page: 2, PageSize: 2), CancellationToken.None);
+
+        Assert.Equal([aminaFirst.Id, aminaSecond.Id], firstPage.Items.Select(item => item.Id));
+        Assert.Equal(3, page.TotalCount);
+        Assert.Equal(2, page.Page);
+        Assert.Equal(2, page.PageSize);
+        Assert.Equal(2, page.TotalPages);
+        var item = Assert.Single(page.Items);
+        Assert.Equal(bill.Id, item.Id);
+        Assert.True(item.HasPhoto);
+        Assert.Equal([bill.Id], store.LastPhotoMetadataStudentIds);
+
+        var clampedPage = await handler.Handle(new ListStudentsQuery(IsActive: true, Page: 99, PageSize: 2), CancellationToken.None);
+        var inactivePage = await handler.Handle(new ListStudentsQuery(IsActive: false, Page: 1, PageSize: 2), CancellationToken.None);
+
+        Assert.Equal(2, clampedPage.Page);
+        Assert.Equal(bill.Id, Assert.Single(clampedPage.Items).Id);
+        Assert.Equal(1, inactivePage.TotalCount);
+        Assert.Equal(inactive.Id, Assert.Single(inactivePage.Items).Id);
+    }
+
+    [Fact]
+    public async Task List_clamps_an_empty_result_set_to_the_first_page()
+    {
+        var result = await new ListStudentsHandler(new InMemoryStudentStore()).Handle(
+            new ListStudentsQuery(IsActive: true, Page: 25, PageSize: 10),
+            CancellationToken.None);
+
+        Assert.Empty(result.Items);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(1, result.Page);
+        Assert.Equal(10, result.PageSize);
+        Assert.Equal(1, result.TotalPages);
+    }
+
+    [Theory]
+    [InlineData(0, 10, "page")]
+    [InlineData(1, 0, "pageSize")]
+    [InlineData(1, 101, "pageSize")]
+    public async Task List_rejects_invalid_paging_input(int page, int pageSize, string field)
+    {
+        var handler = new ListStudentsHandler(new InMemoryStudentStore());
+
+        var exception = await Assert.ThrowsAsync<StudentInputException>(() => handler.Handle(
+            new ListStudentsQuery(IsActive: true, Page: page, PageSize: pageSize),
+            CancellationToken.None));
+
+        Assert.Equal(field, exception.Field);
     }
 
     [Theory]
@@ -371,6 +440,7 @@ public class StudentCreationTests
     {
         public List<Student> Students { get; init; } = [];
         public List<StudentPhoto> Photos { get; } = [];
+        public IReadOnlyList<Guid> LastPhotoMetadataStudentIds { get; private set; } = [];
         public int SaveChangesCalls { get; private set; }
 
         public Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
@@ -385,13 +455,30 @@ public class StudentCreationTests
         public Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default) =>
             Task.FromResult(Students.SingleOrDefault(student => student.DeviceUserId == deviceUserId));
 
-        public Task<IReadOnlyList<Student>> ListAsync(bool isActive, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<Student>>(Students.Where(student => student.IsActive == isActive).ToList());
+        public Task<int> CountAsync(bool isActive, CancellationToken ct = default) =>
+            Task.FromResult(Students.Count(student => student.IsActive == isActive));
 
-        public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos.ToDictionary(
-                photo => photo.StudentId,
-                photo => new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt)));
+        public Task<IReadOnlyList<Student>> ListPageAsync(bool isActive, int skip, int take, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Student>>(Students
+                .Where(student => student.IsActive == isActive)
+                .OrderBy(student => student.FullName)
+                .ThenBy(student => student.StudentNo)
+                .ThenBy(student => student.Id)
+                .Skip(skip)
+                .Take(take)
+                .ToList());
+
+        public Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(
+            IReadOnlyCollection<Guid> studentIds,
+            CancellationToken ct = default)
+        {
+            LastPhotoMetadataStudentIds = studentIds.Order().ToArray();
+            return Task.FromResult<IReadOnlyDictionary<Guid, StudentPhotoMetadata>>(Photos
+                .Where(photo => studentIds.Contains(photo.StudentId))
+                .ToDictionary(
+                    photo => photo.StudentId,
+                    photo => new StudentPhotoMetadata(photo.ContentType, photo.SizeBytes, photo.UpdatedAt)));
+        }
 
         public Task<StudentPhotoMetadata?> GetPhotoMetadataAsync(Guid studentId, CancellationToken ct = default)
         {

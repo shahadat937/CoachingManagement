@@ -6,16 +6,16 @@ import { EMPTY, catchError, exhaustMap, from, map, mergeMap, of, switchMap, with
 import { StudentsApi } from '../data/students.api';
 import { StudentPhotoUrls } from '../data/student-photo-urls.service';
 import { StudentsActions as A } from './students.actions';
-import { selectStudents } from './students.reducer';
+import { selectCurrentPage, selectIsActiveFilter, selectPageSize, selectStudents } from './students.reducer';
 
 export const load$ = createEffect(
   (actions$ = inject(Actions), api = inject(StudentsApi), photoUrls = inject(StudentPhotoUrls)) =>
     actions$.pipe(
       ofType(A.load),
-      switchMap(({ isActive }) => {
+      switchMap(({ isActive, page, pageSize }) => {
         photoUrls.releaseAll();
-        return api.list(isActive).pipe(
-          map((students) => A.loadSuccess({ students })),
+        return api.list(isActive, page, pageSize).pipe(
+          map((result) => A.loadSuccess({ result })),
           catchError((error: unknown) => of(A.loadFailure({ error: getApiError(error, 'Unable to load students.') }))),
         );
       }),
@@ -81,6 +81,20 @@ export const activate$ = createEffect(
   { functional: true },
 );
 
+export const reloadDirectoryAfterMutation$ = createEffect(
+  (actions$ = inject(Actions), store = inject(Store)) =>
+    actions$.pipe(
+      ofType(A.createSuccess, A.updateSuccess, A.deactivateSuccess, A.activateSuccess),
+      withLatestFrom(
+        store.select(selectIsActiveFilter),
+        store.select(selectCurrentPage),
+        store.select(selectPageSize),
+      ),
+      map(([, isActive, page, pageSize]) => A.load({ isActive, page, pageSize })),
+    ),
+  { functional: true },
+);
+
 export const uploadPhoto$ = createEffect(
   (actions$ = inject(Actions), api = inject(StudentsApi)) =>
     actions$.pipe(
@@ -100,8 +114,8 @@ export const loadPhotosAfterStudentsLoad$ = createEffect(
   (actions$ = inject(Actions)) =>
     actions$.pipe(
       ofType(A.loadSuccess),
-      mergeMap(({ students }) => from(
-        students
+      mergeMap(({ result }) => from(
+        result.items
           .filter((student) => student.hasPhoto)
           .map((student) => A.loadPhoto({ studentId: student.id })),
       )),

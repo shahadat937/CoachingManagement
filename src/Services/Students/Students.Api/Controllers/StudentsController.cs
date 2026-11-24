@@ -27,8 +27,22 @@ public sealed record UpdateStudentRequest(
 public class StudentsController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> List([FromQuery] bool isActive = true, CancellationToken ct = default) =>
-        Ok(await sender.Send(new ListStudentsQuery(isActive), ct));
+    public async Task<IActionResult> List(
+        [FromQuery] bool isActive = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return Ok(await sender.Send(new ListStudentsQuery(isActive, page, pageSize), ct));
+        }
+        catch (StudentInputException exception)
+        {
+            return ValidationProblem(new ValidationProblemDetails(
+                new Dictionary<string, string[]> { [exception.Field] = [exception.Message] }));
+        }
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)

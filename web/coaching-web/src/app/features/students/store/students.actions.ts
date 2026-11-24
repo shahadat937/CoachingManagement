@@ -1,11 +1,11 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
-import { CreateStudentRequest, Student, StudentPhotoMetadata, UpdateStudentRequest } from '../data/student.models';
+import { CreateStudentRequest, Student, StudentPage, StudentPhotoMetadata, UpdateStudentRequest } from '../data/student.models';
 
 export const StudentsActions = createActionGroup({
   source: 'Students',
   events: {
-    Load: props<{ isActive: boolean }>(),
-    'Load Success': props<{ students: Student[] }>(),
+    Load: props<{ isActive: boolean; page: number; pageSize: number }>(),
+    'Load Success': props<{ result: StudentPage }>(),
     'Load Failure': props<{ error: string }>(),
     Create: props<{ request: CreateStudentRequest }>(),
     'Create Success': props<{ student: Student }>(),

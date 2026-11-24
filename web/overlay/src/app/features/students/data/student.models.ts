@@ -12,6 +12,14 @@ export interface Student {
   photoUpdatedAt: string | null;
 }
 
+export interface StudentPage {
+  items: Student[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export interface CreateStudentRequest {
   studentNo: string;
   fullName: string;

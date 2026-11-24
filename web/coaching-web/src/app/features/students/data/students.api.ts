@@ -1,15 +1,21 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateStudentRequest, Student, StudentPhotoMetadata, UpdateStudentRequest } from './student.models';
+import { CreateStudentRequest, Student, StudentPage, StudentPhotoMetadata, UpdateStudentRequest } from './student.models';
 
 @Injectable({ providedIn: 'root' })
 export class StudentsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/students';
 
-  list(isActive = true): Observable<Student[]> {
-    return this.http.get<Student[]>(this.baseUrl, { params: { isActive: String(isActive) } });
+  list(isActive = true, page = 1, pageSize = 10): Observable<StudentPage> {
+    return this.http.get<StudentPage>(this.baseUrl, {
+      params: {
+        isActive: String(isActive),
+        page: String(page),
+        pageSize: String(pageSize),
+      },
+    });
   }
 
   create(request: CreateStudentRequest): Observable<Student> {

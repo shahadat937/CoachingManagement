@@ -20,17 +20,31 @@ public sealed class StudentStore(StudentsDbContext db) : IStudentStore
     public Task<Student?> FindByDeviceUserIdAsync(string deviceUserId, CancellationToken ct = default) =>
         db.Students.AsNoTracking().FirstOrDefaultAsync(student => student.DeviceUserId == deviceUserId, ct);
 
-    public async Task<IReadOnlyList<Student>> ListAsync(bool isActive, CancellationToken ct = default) =>
+    public Task<int> CountAsync(bool isActive, CancellationToken ct = default) =>
+        db.Students.CountAsync(student => student.IsActive == isActive, ct);
+
+    public async Task<IReadOnlyList<Student>> ListPageAsync(bool isActive, int skip, int take, CancellationToken ct = default) =>
         await db.Students
             .AsNoTracking()
             .Where(student => student.IsActive == isActive)
             .OrderBy(student => student.FullName)
+            .ThenBy(student => student.StudentNo)
+            .ThenBy(student => student.Id)
+            .Skip(skip)
+            .Take(take)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyDictionary<Guid, StudentPhotoMetadata>> ListPhotoMetadataAsync(
+        IReadOnlyCollection<Guid> studentIds,
+        CancellationToken ct = default)
     {
+        if (studentIds.Count == 0)
+            return new Dictionary<Guid, StudentPhotoMetadata>();
+
+        var ids = studentIds.Distinct().ToArray();
         var photos = await db.StudentPhotos
             .AsNoTracking()
+            .Where(photo => ids.Contains(photo.StudentId))
             .Select(photo => new { photo.StudentId, photo.ContentType, photo.UpdatedAt, photo.SizeBytes })
             .ToListAsync(ct);
 
